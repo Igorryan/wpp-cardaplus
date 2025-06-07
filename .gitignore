@@ -1,0 +1,88 @@
+# Dependências
+node_modules/
+
+# Arquivo de sessão do whatsapp-web.js
+.wwebjs_auth/
+
+# Arquivo de ambiente
+.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Diretório de cobertura gerado por ferramentas de teste
+coverage/
+
+# Diretório de instrumentação nyc
+.nyc_output
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Diretório de saída do TypeScript
+dist/
+
+# Cache do ESLint
+.eslintcache
+
+# Cache do Microbundle
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Cache do REPL
+.node_repl_history
+
+# Saída do 'npm pack'
+*.tgz
+
+# Arquivo de integridade do Yarn
+.yarn-integrity
+
+# Arquivo de ambiente dotenv
+.env
+.env.test
+.env.production
+
+# Cache do parcel-bundler
+.cache
+.parcel-cache
+
+# Saída do Next.js
+.next
+
+# Saída de produção do Nuxt.js
+.nuxt
+
+# Arquivos de build do Gatsby
+public
+
+# Arquivos de dependência do vuepress
+.vuepress/dist
+
+# Diretório de cache do Serverless
+.serverless
+
+# Cache do FuseBox
+.fusebox/
+
+# Arquivos locais do DynamoDB
+.dynamodb/
+
+# Arquivo de porta do TernJS
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test 
