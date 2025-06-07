@@ -89,8 +89,28 @@ const padronizarNumero = (numero) => {
     // Garante que tenha o código do país (55)
     let numeroCompleto = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`;
     
-    // Validação de tamanho (deve ter 13 dígitos: 55 + 11 dígitos)
-    if (numeroCompleto.length !== 13) {
+    console.log(`🔍 Analisando número: ${numeroCompleto}`);
+    
+    // Lógica especial para detectar e remover o 9º dígito extra
+    if (numeroCompleto.length === 13) {
+        // Formato: 55 + DDD (2) + 9 + 8 dígitos = 13 total
+        const ddd = numeroCompleto.substring(2, 4);
+        const primeiroDigito = numeroCompleto.substring(4, 5);
+        const restante = numeroCompleto.substring(5);
+        
+        // Se o primeiro dígito após o DDD é 9, pode ser o 9º dígito extra
+        if (primeiroDigito === '9') {
+            const numeroSem9 = `55${ddd}${restante}`;
+            console.log(`🔄 Detectado possível 9º dígito extra`);
+            console.log(`📱 Número original: ${numeroCompleto}`);
+            console.log(`🧹 Número sem 9º dígito: ${numeroSem9}`);
+            console.log(`⚡ Enviando para: ${numeroSem9}`);
+            return numeroSem9;
+        }
+    }
+    
+    // Validação de tamanho
+    if (numeroCompleto.length !== 12 && numeroCompleto.length !== 13) {
         console.log(`⚠️  Número pode estar incorreto: ${numeroCompleto} (${numeroCompleto.length} dígitos)`);
     }
     
