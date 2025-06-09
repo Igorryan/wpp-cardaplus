@@ -73,8 +73,8 @@ client.on('disconnected', (reason) => {
 client.on('message', async (message) => {
     if (message.from.endsWith('@g.us') || message.fromMe) return;
     
-    const respostaAutomatica = "Olá! 👋 Este é um canal exclusivo para o envio de notificações da Cardaplus. No momento, não consigo processar respostas por aqui. Se precisar de ajuda, por favor, acesse nosso site: https://cardaplus.com";
-    await message.reply(respostaAutomatica);
+    // const respostaAutomatica = "Olá! 👋 Este é um canal exclusivo para o envio de notificações da Cardaplus. No momento, não consigo processar respostas por aqui. Se precisar de ajuda, por favor, acesse nosso site: https://cardaplus.com";
+    // await message.reply(respostaAutomatica);
 });
 
 // ===================================================================================
