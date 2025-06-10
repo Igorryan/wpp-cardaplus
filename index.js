@@ -146,29 +146,40 @@ const padronizarNumero = (numero) => {
 // 🤖 SISTEMA AUTOMÁTICO DE ENVIO PARA LEADS
 // ===================================================================================
 
-// Função para verificar se está no horário comercial (9h às 20h)
+// Função para obter data/hora no fuso horário brasileiro
+const obterHorarioBrasil = () => {
+    return new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"});
+};
+
+// Função para obter objeto Date no horário brasileiro
+const obterDateBrasil = () => {
+    const horarioBrasil = obterHorarioBrasil();
+    return new Date(horarioBrasil);
+};
+
+// Função para verificar se está no horário comercial (9h às 20h) - HORÁRIO BRASILEIRO
 const estaNoHorarioComercial = () => {
-    const agora = new Date();
-    const horaAtual = agora.getHours();
+    const agoraBrasil = obterDateBrasil();
+    const horaAtual = agoraBrasil.getHours();
     
-    // Verifica se está entre 9h (inclusive) e 20h (exclusive)
+    // Verifica se está entre 9h (inclusive) e 20h (exclusive) no horário brasileiro
     return horaAtual >= 9 && horaAtual < 20;
 };
 
-// Função para calcular próximo horário comercial
+// Função para calcular próximo horário comercial - HORÁRIO BRASILEIRO
 const calcularProximoHorarioComercial = () => {
-    const agora = new Date();
-    const horaAtual = agora.getHours();
+    const agoraBrasil = obterDateBrasil();
+    const horaAtual = agoraBrasil.getHours();
     
     if (horaAtual < 9) {
         // Se for antes das 9h, próximo horário é hoje às 9h
-        const proximoHorario = new Date(agora);
+        const proximoHorario = new Date(agoraBrasil);
         proximoHorario.setHours(9, 0, 0, 0);
         return proximoHorario;
     } else if (horaAtual >= 20) {
         // Se for depois das 20h, próximo horário é amanhã às 9h
-        const proximoHorario = new Date(agora);
-        proximoHorario.setDate(agora.getDate() + 1);
+        const proximoHorario = new Date(agoraBrasil);
+        proximoHorario.setDate(agoraBrasil.getDate() + 1);
         proximoHorario.setHours(9, 0, 0, 0);
         return proximoHorario;
     }
@@ -177,10 +188,10 @@ const calcularProximoHorarioComercial = () => {
     return null;
 };
 
-// Função para formatar tempo até próximo horário
+// Função para formatar tempo até próximo horário - HORÁRIO BRASILEIRO
 const formatarTempoAte = (dataFutura) => {
-    const agora = new Date();
-    const diff = dataFutura - agora;
+    const agoraBrasil = obterDateBrasil();
+    const diff = dataFutura - agoraBrasil;
     
     const horas = Math.floor(diff / (1000 * 60 * 60));
     const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -312,10 +323,7 @@ const enviarMensagemAutomaticaLead = async (lead) => {
         // Monta a mensagem personalizada
         const mensagem = `Olá, ${lead.name}! 👋 
 
-Somos da *Cardaplus* e identificamos que você tem um restaurante incrível! 🍽️
-Gostaríamos de ajudar você a ✨ Melhorar seu cardápio no iFood e 📈 Aumentar suas vendas online.
-
-Nossa equipe especializada pode transformar seu cardápio atual em algo muito mais atrativo e funcional.
+Somos da *Cardaplus* e nossa equipe especializada pode transformar seu cardápio atual em uma máquina de vendas.
 
 Acesse nosso site e veja como podemos te ajudar: https://cardaplus.com.br
 
@@ -371,10 +379,10 @@ Acesse nosso site e veja como podemos te ajudar: https://cardaplus.com.br
 // Função principal que executa o processo automático
 const processarEnvioAutomaticoLead = async () => {
     try {
-        const agora = new Date();
-        const horaFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const agoraBrasil = obterDateBrasil();
+        const horaFormatada = agoraBrasil.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         
-        console.log(`\n🤖 Verificando horário (${horaFormatada})...`);
+        console.log(`\n🤖 Verificando horário Brasil (${horaFormatada})...`);
         
         // Verifica se está no horário comercial
         if (!estaNoHorarioComercial()) {
@@ -430,8 +438,8 @@ const agendarProximoEnvio = (resultado) => {
     if (resultado === 'fora_horario') {
         // Se está fora do horário comercial, aguarda até o próximo horário
         const proximoHorario = calcularProximoHorarioComercial();
-        const agora = new Date();
-        intervalo = proximoHorario - agora;
+        const agoraBrasil = obterDateBrasil();
+        intervalo = proximoHorario - agoraBrasil;
         mensagemIntervalo = formatarTempoAte(proximoHorario);
     } else if (resultado === true) {
         // Se foi bem-sucedido, aguarda 10 minutos
@@ -453,8 +461,13 @@ const agendarProximoEnvio = (resultado) => {
 
 // Função para iniciar o sistema automático
 const iniciarEnvioAutomaticoLeads = () => {
+    const agoraBrasil = obterDateBrasil();
+    const agoraVPS = new Date();
+    
     console.log('\n🚀 Sistema automático iniciado!');
-    console.log('🕘 Horário comercial: 9h às 20h');
+    console.log('🕘 Horário comercial: 9h às 20h (Brasil)');
+    console.log(`🌎 Horário Brasil: ${agoraBrasil.toLocaleTimeString('pt-BR')}`);
+    console.log(`🖥️  Horário VPS: ${agoraVPS.toLocaleTimeString('pt-BR')}`);
     console.log('⏰ Intervalo: 10min (sucesso) / 2min (falha)');
     
     // Executa a primeira vez após 5 segundos
@@ -514,8 +527,8 @@ app.post('/enviar-mensagem', async (req, res) => {
 // ===================================================================================
 
 app.get('/status', (req, res) => {
-    const agora = new Date();
-    const horarioAtual = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const agoraBrasil = obterDateBrasil();
+    const horarioAtual = agoraBrasil.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     const dentroHorario = estaNoHorarioComercial();
     
     let proximoEnvio = 'Calculando...';

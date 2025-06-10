@@ -9,9 +9,10 @@ Este sistema foi desenvolvido para enviar mensagens automáticas via WhatsApp pa
 ### 🔄 Processo Automático
 
 1. **Horário Comercial**:
-   - 🕘 **Funcionamento**: 9h às 20h (todos os dias)
+   - 🕘 **Funcionamento**: 9h às 20h (horário de Brasília - todos os dias)
+   - 🌎 **Fuso horário**: Sistema sempre usa horário brasileiro (America/Sao_Paulo)
    - 🚫 **Fora do horário**: sistema aguarda até próximo período comercial
-   - ⏰ **Retomada automática**: às 9h do dia seguinte
+   - ⏰ **Retomada automática**: às 9h do dia seguinte (hora do Brasil)
 
 2. **Lógica de Intervalo Inteligente**:
    - ✅ **Envio bem-sucedido**: aguarda 10 minutos para próximo lead
@@ -84,7 +85,7 @@ const BACKEND_URL = 'https://cardapionotopbackend-d13b5bd9e7ef.herokuapp.com';
 - **Primeira execução**: 5 segundos após inicialização
 - **Envio bem-sucedido**: 10 minutos (600.000ms)
 - **Falha ou sem leads**: 2 minutos (120.000ms)
-- **Fora do horário comercial**: Até próximo período (9h-20h)
+- **Fora do horário comercial**: Até próximo período (9h-20h Brasil)
 
 ## 📨 Mensagem Enviada
 
@@ -124,7 +125,7 @@ O sistema inicia automaticamente quando:
   "mensagem": "Sistema automático de leads rodando",
   "horario": {
     "atual": "14:30",
-    "comercial": "9h às 20h",
+    "comercial": "9h às 20h (Brasil)",
     "ativo": true,
     "proximoEnvio": "Em funcionamento"
   },
