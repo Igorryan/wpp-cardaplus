@@ -16,7 +16,7 @@ require('dotenv').config();
 
 const app = express();
 const PORTA_API = process.env.PORT || 3000;
-const BACKEND_URL = 'https://cardapionotopbackend-d13b5bd9e7ef.herokuapp.com'; // URL do backend em produção
+const BACKEND_URL = 'http://69.62.96.122:3333'; // URL do backend em produção
 
 console.log(PORTA_API);
 
@@ -447,8 +447,8 @@ const agendarProximoEnvio = (resultado) => {
         mensagemIntervalo = '10 minutos';
     } else {
         // Se falhou ou não encontrou lead, tenta novamente em 2 minutos
-        intervalo = 2 * 60 * 1000; // 2 minutos
-        mensagemIntervalo = '2 minutos';
+        intervalo = 2 * 20 * 100; // 2 segundos
+        mensagemIntervalo = '2 segundos';
     }
     
     console.log(`⏰ Próximo envio em: ${mensagemIntervalo}`);
