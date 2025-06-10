@@ -171,13 +171,13 @@ const calcularProximoHorarioComercial = () => {
     const agoraBrasil = obterDateBrasil();
     const horaAtual = agoraBrasil.getHours();
     
-    if (horaAtual < 9) {
+    if (horaAtual < 7) {
         // Se for antes das 9h, próximo horário é hoje às 9h
         const proximoHorario = new Date(agoraBrasil);
-        proximoHorario.setHours(9, 0, 0, 0);
+        proximoHorario.setHours(7, 0, 0, 0);
         return proximoHorario;
-    } else if (horaAtual >= 20) {
-        // Se for depois das 20h, próximo horário é amanhã às 9h
+    } else if (horaAtual >= 22) {
+        // Se for depois das 22h, próximo horário é amanhã às 9h
         const proximoHorario = new Date(agoraBrasil);
         proximoHorario.setDate(agoraBrasil.getDate() + 1);
         proximoHorario.setHours(9, 0, 0, 0);
@@ -378,11 +378,6 @@ Veja esse antes e depois (video abaixo) e descubra como a *Cardaplus* pode *muda
 // Função principal que executa o processo automático
 const processarEnvioAutomaticoLead = async () => {
     try {
-        const agoraBrasil = obterDateBrasil();
-        const horaFormatada = agoraBrasil.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        
-        console.log(`\n🤖 Verificando horário Brasil (${horaFormatada})...`);
-        
         // Verifica se está no horário comercial
         if (!estaNoHorarioComercial()) {
             const proximoHorario = calcularProximoHorarioComercial();
@@ -460,14 +455,7 @@ const agendarProximoEnvio = (resultado) => {
 
 // Função para iniciar o sistema automático
 const iniciarEnvioAutomaticoLeads = () => {
-    const agoraBrasil = obterDateBrasil();
-    const agoraVPS = new Date();
-    
     console.log('\n🚀 Sistema automático iniciado!');
-    console.log('🕘 Horário comercial: 9h às 20h (Brasil)');
-    console.log(`🌎 Horário Brasil: ${agoraBrasil.toLocaleTimeString('pt-BR')}`);
-    console.log(`🖥️  Horário VPS: ${agoraVPS.toLocaleTimeString('pt-BR')}`);
-    console.log('⏰ Intervalo: 10min (sucesso) / 2min (falha)');
     
     // Executa a primeira vez após 5 segundos
     setTimeout(async () => {
@@ -511,6 +499,7 @@ app.post('/enviar-mensagem', async (req, res) => {
 
         // Envia a mensagem!
         await client.sendMessage(numeroFormatado, mensagem);
+        await client.sendMessage(553189551995, `${nomeCliente} acabou de solicitar uma melhoria de cardápio na Cardaplus!`);
         
         console.log(`✅ Mensagem enviada com sucesso para ${nomeCliente} (${numero})`);
         res.status(200).json({ status: 'sucesso', mensagem: 'Mensagem enviada com sucesso!' });
