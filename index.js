@@ -321,7 +321,7 @@ const enviarMensagemAutomaticaLead = async (lead) => {
         
 
         // Monta a mensagem personalizada
-        const mensagem = `Seu cardápio pode estar afastando clientes sem você perceber...
+        const mensagem = `${lead.name}, seu cardápio pode estar afastando clientes sem você perceber...
 Veja esse antes e depois e descubra como a *Cardaplus* pode *mudar o jogo*.
         
 🌟 Acesse: https://www.cardaplus.com - *Seu cardápio é a sua vitrine!*`;
