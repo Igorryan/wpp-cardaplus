@@ -1,15 +1,13 @@
-2025/06/10-13:25:55.184 8603 Reusing MANIFEST /Users/igorryan/Desktop/Projetos/Cardaplus/whatsapp/auth_session/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/06/10-13:25:55.184 8603 Recovering log #87
-2025/06/10-13:25:55.261 8603 Reusing old log /Users/igorryan/Desktop/Projetos/Cardaplus/whatsapp/auth_session/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000087.log 
-2025/06/10-13:25:55.261 8603 Delete type=2 #88
-2025/06/10-13:25:55.261 8603 Delete type=2 #85
-2025/06/10-13:25:57.016 21707 Level-0 table #92: started
-2025/06/10-13:25:57.044 21707 Level-0 table #92: 1205749 bytes OK
-2025/06/10-13:25:57.053 21707 Delete type=0 #87
-2025/06/10-13:25:57.054 21707 Manual compaction at level-0 from '\x00'\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00(\x00\x00\x00' @ 0 : 0; will stop at (end)
-2025/06/10-13:25:58.527 15f0f Compacting 1@1 + 1@2 files
-2025/06/10-13:25:58.575 15f0f Generated table #93@1: 36849 keys, 1349343 bytes
-2025/06/10-13:25:58.575 15f0f Compacted 1@1 + 1@2 files => 1349343 bytes
-2025/06/10-13:25:58.583 15f0f compacted to: files[ 0 0 1 0 0 0 0 ]
-2025/06/10-13:25:58.583 15f0f Delete type=2 #89
-2025/06/10-13:25:58.583 15f0f Delete type=2 #92
+2025/06/10-13:58:05.680 a303 Reusing MANIFEST /Users/igorryan/Desktop/Projetos/Cardaplus/whatsapp/auth_session/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/06/10-13:58:05.680 a303 Recovering log #95
+2025/06/10-13:58:05.681 a303 Reusing old log /Users/igorryan/Desktop/Projetos/Cardaplus/whatsapp/auth_session/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000095.log 
+2025/06/10-13:58:07.440 2880b Level-0 table #100: started
+2025/06/10-13:58:07.444 2880b Level-0 table #100: 26725 bytes OK
+2025/06/10-13:58:07.453 2880b Delete type=0 #95
+2025/06/10-13:58:07.453 1f203 Manual compaction at level-0 from '\x00)\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00*\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/06/10-13:58:08.948 a303 Compacting 1@1 + 1@2 files
+2025/06/10-13:58:08.982 a303 Generated table #101@1: 38491 keys, 1386989 bytes
+2025/06/10-13:58:08.982 a303 Compacted 1@1 + 1@2 files => 1386989 bytes
+2025/06/10-13:58:08.991 a303 compacted to: files[ 0 0 1 0 0 0 0 ]
+2025/06/10-13:58:08.991 a303 Delete type=2 #100
+2025/06/10-13:58:08.991 a303 Delete type=2 #97

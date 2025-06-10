@@ -1,11 +1,13 @@
-2025/06/10-12:37:55.663 8703 Reusing MANIFEST /Users/igorryan/Desktop/Projetos/Cardaplus/whatsapp/auth_session/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/06/10-12:37:55.663 8703 Recovering log #83
-2025/06/10-12:37:55.664 8703 Reusing old log /Users/igorryan/Desktop/Projetos/Cardaplus/whatsapp/auth_session/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000083.log 
-2025/06/10-12:37:57.676 8e03 Level-0 table #88: started
-2025/06/10-12:37:57.687 8e03 Level-0 table #88: 27934 bytes OK
-2025/06/10-12:37:57.692 8e03 Delete type=0 #83
-2025/06/10-12:37:57.693 8e03 Manual compaction at level-0 from '\x00&\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00'\x00\x00\x00' @ 0 : 0; will stop at (end)
-2025/06/10-12:37:59.144 28d03 Compacting 1@1 + 1@2 files
-2025/06/10-12:37:59.173 28d03 Generated table #89@1: 30483 keys, 1137458 bytes
-2025/06/10-12:37:59.173 28d03 Compacted 1@1 + 1@2 files => 1137458 bytes
-2025/06/10-12:37:59.181 28d03 compacted to: files[ 0 0 1 0 0 0 0 ]
+2025/06/10-13:57:55.348 f703 Reusing MANIFEST /Users/igorryan/Desktop/Projetos/Cardaplus/whatsapp/auth_session/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/06/10-13:57:55.348 f703 Recovering log #91
+2025/06/10-13:57:55.366 f703 Reusing old log /Users/igorryan/Desktop/Projetos/Cardaplus/whatsapp/auth_session/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000091.log 
+2025/06/10-13:57:57.233 21703 Level-0 table #96: started
+2025/06/10-13:57:57.241 21703 Level-0 table #96: 319646 bytes OK
+2025/06/10-13:57:57.250 21703 Delete type=0 #91
+2025/06/10-13:57:57.251 21703 Manual compaction at level-0 from '\x00(\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00)\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/06/10-13:57:58.758 26003 Compacting 1@1 + 1@2 files
+2025/06/10-13:57:58.800 26003 Generated table #97@1: 38387 keys, 1385479 bytes
+2025/06/10-13:57:58.800 26003 Compacted 1@1 + 1@2 files => 1385479 bytes
+2025/06/10-13:57:58.807 26003 compacted to: files[ 0 0 1 0 0 0 0 ]
+2025/06/10-13:57:58.807 26003 Delete type=2 #96
+2025/06/10-13:57:58.807 26003 Delete type=2 #93
