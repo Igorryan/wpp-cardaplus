@@ -7,6 +7,7 @@ const express = require('express');
 const cors = require('cors');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
+const axios = require('axios'); // Adicionado para fazer requisições HTTP
 require('dotenv').config();
 
 // ===================================================================================
@@ -15,6 +16,7 @@ require('dotenv').config();
 
 const app = express();
 const PORTA_API = process.env.PORT || 3000;
+const BACKEND_URL = 'https://cardapionotopbackend-d13b5bd9e7ef.herokuapp.com'; // URL do backend em produção
 
 console.log(PORTA_API);
 
@@ -36,19 +38,45 @@ app.use(cors({
 
 // ⚙️ Configurando o cliente do WhatsApp (código que você já tem)
 const client = new Client({
-    authStrategy: new LocalAuth(),
+    authStrategy: new LocalAuth({
+        dataPath: './auth_session'
+    }),
+    webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html',
+    },
     puppeteer: {
         headless: true,
         args: [
             '--no-sandbox',
-            '--disable-setuid-sandbox'
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu',
+            '--disable-extensions',
+            '--disable-default-apps',
+            '--disable-translate',
+            '--disable-sync'
         ]
     }
 });
 
+// Cliente configurado com estabilidade otimizada
+
 // ===================================================================================
 // 📱 INICIALIZAÇÃO E EVENTOS DO WHATSAPP
 // ===================================================================================
+
+client.on('authenticated', () => {
+    console.log('✅ WhatsApp autenticado com sucesso!');
+});
+
+client.on('auth_failure', msg => {
+    console.error('❌ Falha na autenticação:', msg);
+});
 
 client.on('qr', (qr) => {
     console.log('\n📱 Escaneie o código QR abaixo com seu WhatsApp:');
@@ -63,10 +91,18 @@ client.on('ready', () => {
         console.log(`🚀 Servidor da API rodando na porta ${PORTA_API}`);
         console.log(`👉 Para enviar uma mensagem, faça um POST para http://SEU_IP_DA_VPS:${PORTA_API}/enviar-mensagem`);
     });
+
+    // 🎯 Inicia o sistema automático de envio de mensagens para leads
+    iniciarEnvioAutomaticoLeads();
 });
 
 client.on('disconnected', (reason) => {
     console.log('🔌 Bot desconectado. Motivo:', reason);
+});
+
+// Evento para capturar erros gerais
+client.on('error', (error) => {
+    console.error('❌ Erro no cliente WhatsApp:', error);
 });
 
 // Resposta automática para quem tentar conversar com o bot
@@ -89,8 +125,6 @@ const padronizarNumero = (numero) => {
     // Garante que tenha o código do país (55)
     let numeroCompleto = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`;
     
-    console.log(`🔍 Analisando número: ${numeroCompleto}`);
-    
     // Lógica especial para detectar e remover o 9º dígito extra
     if (numeroCompleto.length === 13) {
         // Formato: 55 + DDD (2) + 9 + 8 dígitos = 13 total
@@ -101,20 +135,333 @@ const padronizarNumero = (numero) => {
         // Se o primeiro dígito após o DDD é 9, pode ser o 9º dígito extra
         if (primeiroDigito === '9') {
             const numeroSem9 = `55${ddd}${restante}`;
-            console.log(`🔄 Detectado possível 9º dígito extra`);
-            console.log(`📱 Número original: ${numeroCompleto}`);
-            console.log(`🧹 Número sem 9º dígito: ${numeroSem9}`);
-            console.log(`⚡ Enviando para: ${numeroSem9}`);
             return numeroSem9;
         }
     }
     
-    // Validação de tamanho
-    if (numeroCompleto.length !== 12 && numeroCompleto.length !== 13) {
-        console.log(`⚠️  Número pode estar incorreto: ${numeroCompleto} (${numeroCompleto.length} dígitos)`);
+    return numeroCompleto;
+};
+
+// ===================================================================================
+// 🤖 SISTEMA AUTOMÁTICO DE ENVIO PARA LEADS
+// ===================================================================================
+
+// Função para verificar se está no horário comercial (9h às 20h)
+const estaNoHorarioComercial = () => {
+    const agora = new Date();
+    const horaAtual = agora.getHours();
+    
+    // Verifica se está entre 9h (inclusive) e 20h (exclusive)
+    return horaAtual >= 9 && horaAtual < 20;
+};
+
+// Função para calcular próximo horário comercial
+const calcularProximoHorarioComercial = () => {
+    const agora = new Date();
+    const horaAtual = agora.getHours();
+    
+    if (horaAtual < 9) {
+        // Se for antes das 9h, próximo horário é hoje às 9h
+        const proximoHorario = new Date(agora);
+        proximoHorario.setHours(9, 0, 0, 0);
+        return proximoHorario;
+    } else if (horaAtual >= 20) {
+        // Se for depois das 20h, próximo horário é amanhã às 9h
+        const proximoHorario = new Date(agora);
+        proximoHorario.setDate(agora.getDate() + 1);
+        proximoHorario.setHours(9, 0, 0, 0);
+        return proximoHorario;
     }
     
-    return numeroCompleto;
+    // Se está no horário comercial, retorna null
+    return null;
+};
+
+// Função para formatar tempo até próximo horário
+const formatarTempoAte = (dataFutura) => {
+    const agora = new Date();
+    const diff = dataFutura - agora;
+    
+    const horas = Math.floor(diff / (1000 * 60 * 60));
+    const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (horas > 0) {
+        return `${horas}h${minutos > 0 ? ` ${minutos}min` : ''}`;
+    } else {
+        return `${minutos}min`;
+    }
+};
+
+// Função para buscar um lead sem mensagem do backend
+const buscarLeadSemMensagem = async () => {
+    try {
+        const response = await axios.get(`${BACKEND_URL}/lead/`);
+        return response.data;
+    } catch (error) {
+        console.error('❌ Erro ao buscar lead:', error.message);
+        return null;
+    }
+};
+
+// Função para atualizar o lastMessage do lead
+const atualizarLastMessageLead = async (leadId) => {
+    try {
+        const response = await axios.put(`${BACKEND_URL}/lead/${leadId}`, {
+            lastMessage: new Date()
+        });
+        return response.data;
+    } catch (error) {
+        console.error(`❌ Erro ao atualizar lastMessage do lead ${leadId}:`, error.message);
+        return null;
+    }
+};
+
+// Função para extrair e limpar números de telefone do cnpjPhone
+const extrairNumerosCnpjPhone = (cnpjPhone) => {
+    if (!cnpjPhone) return [];
+    
+    // Remove espaços extras e quebras de linha
+    const textoLimpo = cnpjPhone.trim();
+    
+    // Verifica se há múltiplos números separados por "/"
+    const numerosTexto = textoLimpo.includes('/') ? textoLimpo.split('/') : [textoLimpo];
+    
+    const numerosLimpos = [];
+    
+    numerosTexto.forEach(numTexto => {
+        // Remove todos os caracteres não numéricos
+        const numeroLimpo = numTexto.replace(/\D/g, '');
+        
+        if (numeroLimpo.length >= 8) { // Pelo menos 8 dígitos para ser um número válido
+            numerosLimpos.push(numeroLimpo);
+        }
+    });
+    
+    return numerosLimpos;
+};
+
+// Função para montar número completo com DDD + Phone
+const montarNumeroComDDD = (ddd, phone) => {
+    if (!ddd || !phone) return null;
+    
+    // Remove caracteres não numéricos
+    const dddLimpo = ddd.replace(/\D/g, '');
+    const phoneLimpo = phone.replace(/\D/g, '');
+    
+    if (dddLimpo.length === 2 && phoneLimpo.length >= 8) {
+        return dddLimpo + phoneLimpo;
+    }
+    
+    return null;
+};
+
+// Função para enviar mensagem automática para um lead
+const enviarMensagemAutomaticaLead = async (lead) => {
+    try {
+        console.log(`\n📨 Processando lead: ${lead.name}`);
+
+        // Sempre atualiza o lastMessage, independentemente de ter telefone válido
+        await atualizarLastMessageLead(lead.id);
+
+        const numerosParaEnviar = [];
+        
+        // 1. Tenta montar número com DDD + Phone
+        const numeroLoja = montarNumeroComDDD(lead.ddd, lead.phone);
+        if (numeroLoja) {
+            numerosParaEnviar.push({
+                numero: numeroLoja,
+                tipo: 'Loja (DDD + Phone)',
+                original: `${lead.ddd} + ${lead.phone}`
+            });
+        }
+        
+        // 2. Extrai números do cnpjPhone
+        const numerosCnpj = extrairNumerosCnpjPhone(lead.cnpjPhone);
+        numerosCnpj.forEach((numero, index) => {
+            numerosParaEnviar.push({
+                numero: numero,
+                tipo: `CNPJ Phone ${index + 1}`,
+                original: lead.cnpjPhone
+            });
+        });
+
+        if (numerosParaEnviar.length === 0) {
+            console.log('⚠️  Sem números válidos');
+            return false;
+        }
+
+        // Remove duplicatas baseado no número padronizado final
+        const numerosUnicos = [];
+        const numerosPadronizadosVistos = new Set();
+        
+        for (const item of numerosParaEnviar) {
+            const numeroPadronizado = padronizarNumero(item.numero);
+            
+            if (!numerosPadronizadosVistos.has(numeroPadronizado)) {
+                numerosPadronizadosVistos.add(numeroPadronizado);
+                numerosUnicos.push({
+                    ...item,
+                    numeroPadronizado: numeroPadronizado
+                });
+            }
+        }
+
+        console.log(`📱 ${numerosUnicos.length} número(s) para envio ${numerosParaEnviar.length !== numerosUnicos.length ? `(${numerosParaEnviar.length - numerosUnicos.length} duplicata(s) removida(s))` : ''}`);
+        
+
+        // Monta a mensagem personalizada
+        const mensagem = `Olá, ${lead.name}! 👋 
+
+Somos da *Cardaplus* e identificamos que você tem um restaurante incrível! 🍽️
+Gostaríamos de ajudar você a ✨ Melhorar seu cardápio no iFood e 📈 Aumentar suas vendas online.
+
+Nossa equipe especializada pode transformar seu cardápio atual em algo muito mais atrativo e funcional.
+
+Acesse nosso site e veja como podemos te ajudar: https://cardaplus.com.br
+
+*Cardaplus - Seu cardápio é a sua vitrine!*`;
+
+        let enviosRealizados = 0;
+        let enviosBemSucedidos = 0;
+
+        // Envia mensagem para todos os números únicos encontrados
+        for (const item of numerosUnicos) {
+            try {
+                enviosRealizados++;
+                
+                // Usar o número já padronizado da verificação de duplicatas
+                const numeroPadronizado = item.numeroPadronizado;
+                const numeroFormatado = `${numeroPadronizado}@c.us`;
+
+                // Envia a mensagem!
+                await client.sendMessage(numeroFormatado, mensagem);
+                enviosBemSucedidos++;
+                
+                console.log(`✅ Enviado para ${numeroPadronizado} (${item.tipo})`);
+                
+                // Pequena pausa entre envios para evitar spam
+                if (enviosRealizados < numerosUnicos.length) {
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos
+                }
+                
+            } catch (error) {
+                console.error(`❌ Erro ao enviar para ${item.numero}:`, error.message);
+            }
+        }
+        
+        console.log(`📊 Resultado: ${enviosBemSucedidos}/${numerosUnicos.length} envios bem-sucedidos`);
+        
+        // Considera sucesso se pelo menos 1 envio foi bem-sucedido
+        return enviosBemSucedidos > 0;
+
+    } catch (error) {
+        console.error('❌ Erro geral ao enviar mensagem automática:', error.message);
+        
+        // Mesmo com erro no envio, marca como processado
+        try {
+            await atualizarLastMessageLead(lead.id);
+        } catch (updateError) {
+            console.error(`❌ Erro ao atualizar lastMessage:`, updateError.message);
+        }
+        
+        return false;
+    }
+};
+
+// Função principal que executa o processo automático
+const processarEnvioAutomaticoLead = async () => {
+    try {
+        const agora = new Date();
+        const horaFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        
+        console.log(`\n🤖 Verificando horário (${horaFormatada})...`);
+        
+        // Verifica se está no horário comercial
+        if (!estaNoHorarioComercial()) {
+            const proximoHorario = calcularProximoHorarioComercial();
+            const tempoAte = formatarTempoAte(proximoHorario);
+            const proximoHorarioFormatado = proximoHorario.toLocaleString('pt-BR', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            console.log(`🕘 Fora do horário comercial (9h-20h)`);
+            console.log(`⏰ Próximo envio: ${proximoHorarioFormatado} (em ${tempoAte})`);
+            return 'fora_horario'; // Indica que está fora do horário
+        }
+        
+        console.log('✅ No horário comercial - Buscando lead...');
+        
+        // Busca um lead sem mensagem
+        const lead = await buscarLeadSemMensagem();
+        
+        if (!lead) {
+            console.log('🏁 Nenhum lead pendente');
+            return false;
+        }
+        
+        // Envia mensagem para o lead encontrado
+        const sucesso = await enviarMensagemAutomaticaLead(lead);
+        
+        console.log(sucesso ? '✅ Processo concluído com sucesso!' : '⚠️ Processo concluído com falhas');
+        return sucesso;
+        
+    } catch (error) {
+        console.error('❌ Erro no processo automático:', error.message);
+        return false;
+    }
+};
+
+// Variável para controlar o timeout
+let proximoEnvioTimeout = null;
+
+// Função para agendar próximo envio baseado no resultado
+const agendarProximoEnvio = (resultado) => {
+    // Limpa o timeout anterior se existir
+    if (proximoEnvioTimeout) {
+        clearTimeout(proximoEnvioTimeout);
+    }
+    
+    let intervalo;
+    let mensagemIntervalo;
+    
+    if (resultado === 'fora_horario') {
+        // Se está fora do horário comercial, aguarda até o próximo horário
+        const proximoHorario = calcularProximoHorarioComercial();
+        const agora = new Date();
+        intervalo = proximoHorario - agora;
+        mensagemIntervalo = formatarTempoAte(proximoHorario);
+    } else if (resultado === true) {
+        // Se foi bem-sucedido, aguarda 10 minutos
+        intervalo = 10 * 60 * 1000; // 10 minutos
+        mensagemIntervalo = '10 minutos';
+    } else {
+        // Se falhou ou não encontrou lead, tenta novamente em 2 minutos
+        intervalo = 2 * 60 * 1000; // 2 minutos
+        mensagemIntervalo = '2 minutos';
+    }
+    
+    console.log(`⏰ Próximo envio em: ${mensagemIntervalo}`);
+    
+    proximoEnvioTimeout = setTimeout(async () => {
+        const novoResultado = await processarEnvioAutomaticoLead();
+        agendarProximoEnvio(novoResultado);
+    }, intervalo);
+};
+
+// Função para iniciar o sistema automático
+const iniciarEnvioAutomaticoLeads = () => {
+    console.log('\n🚀 Sistema automático iniciado!');
+    console.log('🕘 Horário comercial: 9h às 20h');
+    console.log('⏰ Intervalo: 10min (sucesso) / 2min (falha)');
+    
+    // Executa a primeira vez após 5 segundos
+    setTimeout(async () => {
+        const resultado = await processarEnvioAutomaticoLead();
+        agendarProximoEnvio(resultado);
+    }, 5000);
 };
 
 // ===================================================================================
@@ -162,7 +509,48 @@ app.post('/enviar-mensagem', async (req, res) => {
     }
 });
 
+// ===================================================================================
+// 🔍 ENDPOINT PARA VERIFICAR STATUS DO SISTEMA AUTOMÁTICO
+// ===================================================================================
+
+app.get('/status', (req, res) => {
+    const agora = new Date();
+    const horarioAtual = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const dentroHorario = estaNoHorarioComercial();
+    
+    let proximoEnvio = 'Calculando...';
+    if (!dentroHorario) {
+        const proximoHorario = calcularProximoHorarioComercial();
+        proximoEnvio = proximoHorario.toLocaleString('pt-BR', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    }
+    
+    res.json({
+        status: 'ativo',
+        mensagem: 'Sistema automático de leads rodando',
+        horario: {
+            atual: horarioAtual,
+            comercial: '9h às 20h',
+            ativo: dentroHorario,
+            proximoEnvio: dentroHorario ? 'Em funcionamento' : proximoEnvio
+        },
+        intervalo: {
+            sucesso: '10 minutos',
+            falha: '2 minutos',
+            foraHorario: 'Até próximo horário comercial'
+        },
+        backend: BACKEND_URL
+    });
+});
 
 // 🚀 Inicializar o cliente do WhatsApp
-console.log('🤖 Iniciando bot de notificações...');
-client.initialize();
+console.log('🤖 Iniciando bot WhatsApp...');
+
+client.initialize().catch(error => {
+    console.error('❌ Erro ao inicializar cliente:', error);
+    process.exit(1);
+});
