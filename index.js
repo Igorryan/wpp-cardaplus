@@ -157,13 +157,13 @@ const obterDateBrasil = () => {
     return new Date(horarioBrasil);
 };
 
-// Função para verificar se está no horário comercial (9h às 20h) - HORÁRIO BRASILEIRO
+// Função para verificar se está no horário comercial (7h às 23h) - HORÁRIO BRASILEIRO
 const estaNoHorarioComercial = () => {
     const agoraBrasil = obterDateBrasil();
     const horaAtual = agoraBrasil.getHours();
     
-    // Verifica se está entre 9h (inclusive) e 20h (exclusive) no horário brasileiro
-    return horaAtual >= 9 && horaAtual < 20;
+    // Verifica se está entre 7h (inclusive) e 23h (exclusive) no horário brasileiro
+    return horaAtual >= 7 && horaAtual < 23;
 };
 
 // Função para calcular próximo horário comercial - HORÁRIO BRASILEIRO
@@ -172,20 +172,22 @@ const calcularProximoHorarioComercial = () => {
     const horaAtual = agoraBrasil.getHours();
     
     if (horaAtual < 7) {
-        // Se for antes das 9h, próximo horário é hoje às 9h
+        // Se for antes das 7h, próximo horário é hoje às 7h
         const proximoHorario = new Date(agoraBrasil);
         proximoHorario.setHours(7, 0, 0, 0);
         return proximoHorario;
-    } else if (horaAtual >= 22) {
-        // Se for depois das 22h, próximo horário é amanhã às 9h
+    } else if (horaAtual >= 23) {
+        // Se for depois das 23h, próximo horário é amanhã às 7h
         const proximoHorario = new Date(agoraBrasil);
         proximoHorario.setDate(agoraBrasil.getDate() + 1);
-        proximoHorario.setHours(9, 0, 0, 0);
+        proximoHorario.setHours(7, 0, 0, 0);
         return proximoHorario;
     }
     
-    // Se está no horário comercial, retorna null
-    return null;
+    // Se está no horário comercial, não deveria chamar esta função, mas retorna um horário futuro de segurança
+    const proximoHorario = new Date(agoraBrasil);
+    proximoHorario.setHours(23, 0, 0, 0);
+    return proximoHorario;
 };
 
 // Função para formatar tempo até próximo horário - HORÁRIO BRASILEIRO
@@ -389,7 +391,7 @@ const processarEnvioAutomaticoLead = async () => {
                 minute: '2-digit' 
             });
             
-            console.log(`🕘 Fora do horário comercial (9h-20h)`);
+            console.log(`🕘 Fora do horário comercial (7h-23h)`);
             console.log(`⏰ Próximo envio: ${proximoHorarioFormatado} (em ${tempoAte})`);
             return 'fora_horario'; // Indica que está fora do horário
         }
@@ -436,9 +438,9 @@ const agendarProximoEnvio = (resultado) => {
         intervalo = proximoHorario - agoraBrasil;
         mensagemIntervalo = formatarTempoAte(proximoHorario);
     } else if (resultado === true) {
-        // Se foi bem-sucedido, aguarda 10 minutos
-        intervalo = 5 * 60 * 1000; // 10 minutos
-        mensagemIntervalo = '10 minutos';
+        // Se foi bem-sucedido, aguarda 5 minutos
+        intervalo = 4 * 60 * 1000; // 5 minutos
+        mensagemIntervalo = '4 minutos';
     } else {
         // Se falhou ou não encontrou lead, tenta novamente em 2 minutos
         intervalo = 2 * 20 * 100; // 2 segundos
@@ -522,12 +524,16 @@ app.get('/status', (req, res) => {
     let proximoEnvio = 'Calculando...';
     if (!dentroHorario) {
         const proximoHorario = calcularProximoHorarioComercial();
-        proximoEnvio = proximoHorario.toLocaleString('pt-BR', { 
-            day: '2-digit', 
-            month: '2-digit', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
+        if (proximoHorario) {
+            proximoEnvio = proximoHorario.toLocaleString('pt-BR', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        } else {
+            proximoEnvio = 'Erro ao calcular próximo horário';
+        }
     }
     
     res.json({
@@ -535,12 +541,12 @@ app.get('/status', (req, res) => {
         mensagem: 'Sistema automático de leads rodando',
         horario: {
             atual: horarioAtual,
-            comercial: '9h às 20h',
+            comercial: '7h às 23h',
             ativo: dentroHorario,
             proximoEnvio: dentroHorario ? 'Em funcionamento' : proximoEnvio
         },
         intervalo: {
-            sucesso: '10 minutos',
+            sucesso: '5 minutos',
             falha: '2 minutos',
             foraHorario: 'Até próximo horário comercial'
         },
