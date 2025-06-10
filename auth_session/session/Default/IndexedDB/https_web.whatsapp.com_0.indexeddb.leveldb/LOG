@@ -1,24 +1,15 @@
-2025/06/10-12:26:50.124 a003 Reusing MANIFEST /Users/igorryan/Desktop/Projetos/Cardaplus/whatsapp/auth_session/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/06/10-12:26:50.125 a003 Recovering log #65
-2025/06/10-12:26:50.163 a003 Reusing old log /Users/igorryan/Desktop/Projetos/Cardaplus/whatsapp/auth_session/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000065.log 
-2025/06/10-12:26:50.163 a003 Delete type=2 #61
-2025/06/10-12:26:50.163 a003 Delete type=2 #67
-2025/06/10-12:26:52.026 f203 Level-0 table #71: started
-2025/06/10-12:26:52.040 f203 Level-0 table #71: 473781 bytes OK
-2025/06/10-12:26:52.050 f203 Delete type=0 #65
-2025/06/10-12:26:52.051 f203 Manual compaction at level-0 from '\x00 \x00\x00\x00' @ 72057594037927935 : 1 .. '\x00!\x00\x00\x00' @ 0 : 0; will stop at (end)
-2025/06/10-12:26:52.053 2220b Level-0 table #73: started
-2025/06/10-12:26:52.056 2220b Level-0 table #73: 445 bytes OK
-2025/06/10-12:26:52.063 2220b Delete type=0 #70
-2025/06/10-12:26:52.064 2220b Manual compaction at level-0 from '\x00!\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00"\x00\x00\x00' @ 0 : 0; will stop at '\x00!\x00\x00\x05' @ 113342 : 0
-2025/06/10-12:26:52.064 2220b Compacting 1@0 + 1@1 files
-2025/06/10-12:26:52.079 2220b Generated table #74@0: 12521 keys, 277657 bytes
-2025/06/10-12:26:52.079 2220b Compacted 1@0 + 1@1 files => 277657 bytes
-2025/06/10-12:26:52.086 2220b compacted to: files[ 0 1 1 0 0 0 0 ]
-2025/06/10-12:26:52.086 2220b Delete type=2 #73
-2025/06/10-12:26:52.087 2220b Manual compaction at level-0 from '\x00!\x00\x00\x05' @ 113342 : 0 .. '\x00"\x00\x00\x00' @ 0 : 0; will stop at (end)
-2025/06/10-12:26:53.492 22903 Compacting 1@1 + 1@2 files
-2025/06/10-12:26:53.516 22903 Generated table #75@1: 24872 keys, 917888 bytes
-2025/06/10-12:26:53.516 22903 Compacted 1@1 + 1@2 files => 917888 bytes
-2025/06/10-12:26:53.524 22903 compacted to: files[ 0 0 1 0 0 0 0 ]
-2025/06/10-12:26:53.524 22903 Delete type=2 #71
+2025/06/10-13:25:55.184 8603 Reusing MANIFEST /Users/igorryan/Desktop/Projetos/Cardaplus/whatsapp/auth_session/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/06/10-13:25:55.184 8603 Recovering log #87
+2025/06/10-13:25:55.261 8603 Reusing old log /Users/igorryan/Desktop/Projetos/Cardaplus/whatsapp/auth_session/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000087.log 
+2025/06/10-13:25:55.261 8603 Delete type=2 #88
+2025/06/10-13:25:55.261 8603 Delete type=2 #85
+2025/06/10-13:25:57.016 21707 Level-0 table #92: started
+2025/06/10-13:25:57.044 21707 Level-0 table #92: 1205749 bytes OK
+2025/06/10-13:25:57.053 21707 Delete type=0 #87
+2025/06/10-13:25:57.054 21707 Manual compaction at level-0 from '\x00'\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00(\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/06/10-13:25:58.527 15f0f Compacting 1@1 + 1@2 files
+2025/06/10-13:25:58.575 15f0f Generated table #93@1: 36849 keys, 1349343 bytes
+2025/06/10-13:25:58.575 15f0f Compacted 1@1 + 1@2 files => 1349343 bytes
+2025/06/10-13:25:58.583 15f0f compacted to: files[ 0 0 1 0 0 0 0 ]
+2025/06/10-13:25:58.583 15f0f Delete type=2 #89
+2025/06/10-13:25:58.583 15f0f Delete type=2 #92
