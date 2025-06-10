@@ -16,8 +16,7 @@ require('dotenv').config();
 
 const app = express();
 const PORTA_API = process.env.PORT || 3000;
-// Como ambos estão na mesma VPS, usar localhost é mais eficiente
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3333';
+const BACKEND_URL = 'https://api.cardaplus.com'; // URL do backend em produção
 
 console.log(PORTA_API);
 
