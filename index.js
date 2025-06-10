@@ -325,7 +325,7 @@ const enviarMensagemAutomaticaLead = async (lead) => {
 
 Somos da *Cardaplus* e nossa equipe especializada pode transformar seu cardápio atual em uma máquina de vendas.
 
-Acesse nosso site e veja como podemos te ajudar: https://cardaplus.com.br
+Acesse nosso site e veja como podemos te ajudar: https://cardaplus.com
 
 *Cardaplus - Seu cardápio é a sua vitrine!*`;
 
