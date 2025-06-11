@@ -438,9 +438,9 @@ const agendarProximoEnvio = (resultado) => {
         intervalo = proximoHorario - agoraBrasil;
         mensagemIntervalo = formatarTempoAte(proximoHorario);
     } else if (resultado === true) {
-        // Se foi bem-sucedido, aguarda 5 minutos
-        intervalo = 4 * 60 * 1000; // 5 minutos
-        mensagemIntervalo = '4 minutos';
+        // Se foi bem-sucedido, aguarda 10 minutos
+        intervalo = 10 * 60 * 1000; // 10 minutos
+        mensagemIntervalo = '10 minutos';
     } else {
         // Se falhou ou não encontrou lead, tenta novamente em 2 minutos
         intervalo = 2 * 20 * 100; // 2 segundos
