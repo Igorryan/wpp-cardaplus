@@ -326,7 +326,7 @@ const enviarMensagemAutomaticaLead = async (lead) => {
         const mensagem = `Enquanto o presidente te rouba e o iFood te enche de taxas, você segue trabalhando duro, jogando dentro das regras.
 
 *Que tal um atalho inteligente?*
-A gente compra contas de outras pessoas e envia pedidos com cupom direto pra sua loja.
+Nossa equipe envia pedidos com cupom direto pra sua loja e avalia cada pedido.
 Você só precisa aceitar.
 
 Resultado?
