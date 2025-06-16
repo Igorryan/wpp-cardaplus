@@ -59,9 +59,23 @@ const client = new Client({
             '--disable-extensions',
             '--disable-default-apps',
             '--disable-translate',
-            '--disable-sync'
-        ]
-    }
+            '--disable-sync',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            '--disable-features=TranslateUI',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor',
+            '--memory-pressure-off',
+            '--max_old_space_size=4096'
+        ],
+        timeout: 60000,
+        handleSIGINT: false,
+        handleSIGTERM: false,
+        handleSIGHUP: false
+    },
+    takeoverOnConflict: true,
+    takeoverTimeoutMs: 60000
 });
 
 // Cliente configurado com estabilidade otimizada
@@ -98,11 +112,25 @@ client.on('ready', () => {
 
 client.on('disconnected', (reason) => {
     console.log('🔌 Bot desconectado. Motivo:', reason);
+    
+    // Tentar reconectar após 30 segundos
+    console.log('🔄 Tentando reconectar em 30 segundos...');
+    setTimeout(() => {
+        inicializarClienteComRetry();
+    }, 30000);
 });
 
 // Evento para capturar erros gerais
 client.on('error', (error) => {
     console.error('❌ Erro no cliente WhatsApp:', error);
+    
+    // Se for erro crítico, tentar reinicializar
+    if (error.message.includes('Protocol error') || error.message.includes('Target closed')) {
+        console.log('🔄 Erro crítico detectado. Reinicializando em 15 segundos...');
+        setTimeout(() => {
+            process.exit(1); // PM2 vai reiniciar automaticamente
+        }, 15000);
+    }
 });
 
 // Resposta automática para quem tentar conversar com o bot
@@ -605,10 +633,41 @@ app.get('/status', (req, res) => {
     });
 });
 
-// 🚀 Inicializar o cliente do WhatsApp
-console.log('🤖 Iniciando bot WhatsApp...');
+// ===================================================================================
+// 🚀 INICIALIZAÇÃO COM RETRY AUTOMÁTICO
+// ===================================================================================
 
-client.initialize().catch(error => {
-    console.error('❌ Erro ao inicializar cliente:', error);
-    process.exit(1);
-});
+let tentativasInicializacao = 0;
+const MAX_TENTATIVAS = 3;
+
+const inicializarClienteComRetry = async () => {
+    tentativasInicializacao++;
+    
+    try {
+        console.log(`🤖 Iniciando bot WhatsApp... (Tentativa ${tentativasInicializacao}/${MAX_TENTATIVAS})`);
+        await client.initialize();
+        
+    } catch (error) {
+        console.error(`❌ Erro ao inicializar cliente (Tentativa ${tentativasInicializacao}):`, error.message);
+        
+        if (tentativasInicializacao < MAX_TENTATIVAS) {
+            console.log(`🔄 Tentando novamente em 10 segundos...`);
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            
+            // Limpa recursos antes de tentar novamente
+            try {
+                await client.destroy();
+            } catch (destroyError) {
+                console.log('⚠️ Erro ao limpar cliente anterior:', destroyError.message);
+            }
+            
+            return inicializarClienteComRetry();
+        } else {
+            console.error(`💀 Falha após ${MAX_TENTATIVAS} tentativas. Encerrando...`);
+            process.exit(1);
+        }
+    }
+};
+
+// Inicializar o cliente
+inicializarClienteComRetry();
