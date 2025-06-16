@@ -403,21 +403,60 @@ const processarEnvioAutomaticoLead = async () => {
             return 'fora_horario'; // Indica que está fora do horário
         }
         
-        console.log('✅ No horário comercial - Buscando lead...');
+        console.log('✅ No horário comercial - Buscando leads...');
         
-        // Busca um lead sem mensagem
-        const lead = await buscarLeadSemMensagem();
+        const LIMITE_LEADS = 3; // Processará até 3 leads por vez
+        let leadsProcessados = 0;
+        let sucessos = 0;
         
-        if (!lead) {
-            console.log('🏁 Nenhum lead pendente');
+        // Processa até 3 leads
+        for (let i = 0; i < LIMITE_LEADS; i++) {
+            try {
+                // Busca um lead sem mensagem
+                const lead = await buscarLeadSemMensagem();
+                
+                if (!lead) {
+                    console.log(`🏁 Nenhum lead pendente (processados: ${leadsProcessados})`);
+                    break;
+                }
+                
+                leadsProcessados++;
+                console.log(`\n📋 Processando lead ${leadsProcessados}/${LIMITE_LEADS}`);
+                
+                // Envia mensagem para o lead encontrado
+                const sucesso = await enviarMensagemAutomaticaLead(lead);
+                
+                if (sucesso) {
+                    sucessos++;
+                }
+                
+                // Pausa de 3 segundos entre leads para evitar spam
+                if (i < LIMITE_LEADS - 1) {
+                    console.log('⏳ Aguardando 3 segundos antes do próximo lead...');
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+                
+            } catch (error) {
+                console.error(`❌ Erro ao processar lead ${i + 1}:`, error.message);
+            }
+        }
+        
+        // Resultados finais
+        if (leadsProcessados === 0) {
+            console.log('🏁 Nenhum lead encontrado');
             return false;
         }
         
-        // Envia mensagem para o lead encontrado
-        const sucesso = await enviarMensagemAutomaticaLead(lead);
+        console.log(`\n📊 RESULTADO DO LOTE:`);
+        console.log(`   • Leads processados: ${leadsProcessados}`);
+        console.log(`   • Envios bem-sucedidos: ${sucessos}`);
+        console.log(`   • Taxa de sucesso: ${leadsProcessados > 0 ? Math.round((sucessos / leadsProcessados) * 100) : 0}%`);
         
-        console.log(sucesso ? '✅ Processo concluído com sucesso!' : '⚠️ Processo concluído com falhas');
-        return sucesso;
+        // Considera sucesso se pelo menos 1 envio foi bem-sucedido
+        const resultadoFinal = sucessos > 0;
+        console.log(resultadoFinal ? '✅ Lote concluído com sucesso!' : '⚠️ Lote concluído com falhas');
+        
+        return resultadoFinal;
         
     } catch (error) {
         console.error('❌ Erro no processo automático:', error.message);
@@ -546,6 +585,11 @@ app.get('/status', (req, res) => {
     res.json({
         status: 'ativo',
         mensagem: 'Sistema automático de leads rodando',
+        configuracao: {
+            leadsParalelos: 3,
+            pausaEntreLeads: '3 segundos',
+            pausaEntreLotes: '10 minutos'
+        },
         horario: {
             atual: horarioAtual,
             comercial: '7h às 23h',
@@ -553,8 +597,8 @@ app.get('/status', (req, res) => {
             proximoEnvio: dentroHorario ? 'Em funcionamento' : proximoEnvio
         },
         intervalo: {
-            sucesso: '5 minutos',
-            falha: '2 minutos',
+            sucesso: '10 minutos',
+            falha: '2 segundos',
             foraHorario: 'Até próximo horário comercial'
         },
         backend: BACKEND_URL
