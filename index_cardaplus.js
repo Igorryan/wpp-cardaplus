@@ -208,7 +208,7 @@ const formatarTempoAte = (dataFutura) => {
 // Função para buscar um lead sem mensagem do backend
 const buscarLeadSemMensagem = async () => {
     try {
-        const response = await axios.get(`${BACKEND_URL}/lead/application`);
+        const response = await axios.get(`${BACKEND_URL}/lead/`);
         return response.data;
     } catch (error) {
         console.error('❌ Erro ao buscar lead:', error.message);
@@ -220,7 +220,7 @@ const buscarLeadSemMensagem = async () => {
 const atualizarLastMessageLead = async (leadId) => {
     try {
         const response = await axios.put(`${BACKEND_URL}/lead/${leadId}`, {
-            lastMessageApplication: new Date()
+            lastMessage: new Date()
         });
         return response.data;
     } catch (error) {
@@ -323,19 +323,12 @@ const enviarMensagemAutomaticaLead = async (lead) => {
         
 
         // Monta a mensagem personalizada
-        const mensagem = `Enquanto o presidente te rouba e o iFood te enche de taxas, você segue trabalhando duro, jogando dentro das regras.
+        const mensagem = `${lead.name}, seu cardápio pode estar afastando clientes sem você perceber...
 
-*Que tal um atalho inteligente?*
-A gente compra contas de outras pessoas e envia pedidos com cupom direto pra sua loja.
-Você só precisa aceitar.
-
-Resultado?
-⭐️ Avaliações 5 estrelas no seu restaurante.
-💰 Dinheiro no seu bolso (e no nosso também).
-✅ E tudo isso com segurança e transparência.
-
-Estamos há mais de 5 anos no mercado, com um processo sólido, testado e aprovado.
-Quer entender melhor? É só chamar ou ligar. Estamos à disposição!`;
+Veja esse antes e depois (video abaixo) e descubra como a *Cardaplus* pode *mudar o jogo*.
+        
+🌟 Acesse: https://www.cardaplus.com
+*Seu cardápio é a sua vitrine!*`;
 
         let enviosRealizados = 0; 
         let enviosBemSucedidos = 0;
