@@ -208,7 +208,7 @@ const formatarTempoAte = (dataFutura) => {
 // Função para buscar um lead sem mensagem do backend
 const buscarLeadSemMensagem = async () => {
     try {
-        const response = await axios.get(`${BACKEND_URL}/lead/application`);
+        const response = await axios.get(`${BACKEND_URL}/lead/application/without`);
         return response.data;
     } catch (error) {
         console.error('❌ Erro ao buscar lead:', error.message);
