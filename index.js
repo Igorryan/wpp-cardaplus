@@ -25,15 +25,9 @@ app.use(express.json());
 
 // 🌐 Configurar CORS para permitir requisições do frontend
 app.use(cors({
-    origin: [
-        'http://localhost:5173', // Vite dev server
-        'http://localhost:3000', // Frontend alternativo
-        'http://localhost:3001', // Frontend alternativo
-        'http://127.0.0.1:5173', // IP local
-    ],
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // ⚙️ Configurando o cliente do WhatsApp (código que você já tem)
