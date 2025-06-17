@@ -59,9 +59,23 @@ const client = new Client({
             '--disable-extensions',
             '--disable-default-apps',
             '--disable-translate',
-            '--disable-sync'
-        ]
-    }
+            '--disable-sync',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            '--disable-features=TranslateUI',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor',
+            '--memory-pressure-off',
+            '--max_old_space_size=4096'
+        ],
+        timeout: 60000,
+        handleSIGINT: false,
+        handleSIGTERM: false,
+        handleSIGHUP: false
+    },
+    takeoverOnConflict: true,
+    takeoverTimeoutMs: 60000
 });
 
 // Cliente configurado com estabilidade otimizada
@@ -98,11 +112,25 @@ client.on('ready', () => {
 
 client.on('disconnected', (reason) => {
     console.log('🔌 Bot desconectado. Motivo:', reason);
+    
+    // Tentar reconectar após 30 segundos
+    console.log('🔄 Tentando reconectar em 30 segundos...');
+    setTimeout(() => {
+        inicializarClienteComRetry();
+    }, 30000);
 });
 
 // Evento para capturar erros gerais
 client.on('error', (error) => {
     console.error('❌ Erro no cliente WhatsApp:', error);
+    
+    // Se for erro crítico, tentar reinicializar
+    if (error.message.includes('Protocol error') || error.message.includes('Target closed')) {
+        console.log('🔄 Erro crítico detectado. Reinicializando em 15 segundos...');
+        setTimeout(() => {
+            process.exit(1); // PM2 vai reiniciar automaticamente
+        }, 15000);
+    }
 });
 
 // Resposta automática para quem tentar conversar com o bot
@@ -208,7 +236,7 @@ const formatarTempoAte = (dataFutura) => {
 // Função para buscar um lead sem mensagem do backend
 const buscarLeadSemMensagem = async () => {
     try {
-        const response = await axios.get(`${BACKEND_URL}/lead/`);
+        const response = await axios.get(`${BACKEND_URL}/lead/application/without`);
         return response.data;
     } catch (error) {
         console.error('❌ Erro ao buscar lead:', error.message);
@@ -220,7 +248,7 @@ const buscarLeadSemMensagem = async () => {
 const atualizarLastMessageLead = async (leadId) => {
     try {
         const response = await axios.put(`${BACKEND_URL}/lead/${leadId}`, {
-            lastMessage: new Date()
+            lastMessageApplication: new Date()
         });
         return response.data;
     } catch (error) {
@@ -323,12 +351,19 @@ const enviarMensagemAutomaticaLead = async (lead) => {
         
 
         // Monta a mensagem personalizada
-        const mensagem = `${lead.name}, seu cardápio pode estar afastando clientes sem você perceber...
+        const mensagem = `Enquanto o presidente te rouba e o iFood te enche de taxas, você segue trabalhando duro, jogando dentro das regras.
 
-Veja esse antes e depois (video abaixo) e descubra como a *Cardaplus* pode *mudar o jogo*.
-        
-🌟 Acesse: https://www.cardaplus.com
-*Seu cardápio é a sua vitrine!*`;
+*Que tal um atalho inteligente?*
+Nossa equipe envia pedidos com cupom direto pra sua loja e avalia cada pedido.
+Você só precisa aceitar.
+
+Resultado?
+⭐️ Avaliações 5 estrelas no seu restaurante.
+💰 Dinheiro no seu bolso (e no nosso também).
+✅ E tudo isso com segurança e transparência.
+
+Estamos há mais de 5 anos no mercado, com um processo sólido, testado e aprovado.
+Quer entender melhor? É só chamar ou ligar. Estamos à disposição!`;
 
         let enviosRealizados = 0; 
         let enviosBemSucedidos = 0;
@@ -396,21 +431,60 @@ const processarEnvioAutomaticoLead = async () => {
             return 'fora_horario'; // Indica que está fora do horário
         }
         
-        console.log('✅ No horário comercial - Buscando lead...');
+        console.log('✅ No horário comercial - Buscando leads...');
         
-        // Busca um lead sem mensagem
-        const lead = await buscarLeadSemMensagem();
+        const LIMITE_LEADS = 3; // Processará até 3 leads por vez
+        let leadsProcessados = 0;
+        let sucessos = 0;
         
-        if (!lead) {
-            console.log('🏁 Nenhum lead pendente');
+        // Processa até 3 leads
+        for (let i = 0; i < LIMITE_LEADS; i++) {
+            try {
+                // Busca um lead sem mensagem
+                const lead = await buscarLeadSemMensagem();
+                
+                if (!lead) {
+                    console.log(`🏁 Nenhum lead pendente (processados: ${leadsProcessados})`);
+                    break;
+                }
+                
+                leadsProcessados++;
+                console.log(`\n📋 Processando lead ${leadsProcessados}/${LIMITE_LEADS}`);
+                
+                // Envia mensagem para o lead encontrado
+                const sucesso = await enviarMensagemAutomaticaLead(lead);
+                
+                if (sucesso) {
+                    sucessos++;
+                }
+                
+                // Pausa de 3 segundos entre leads para evitar spam
+                if (i < LIMITE_LEADS - 1) {
+                    console.log('⏳ Aguardando 3 segundos antes do próximo lead...');
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+                
+            } catch (error) {
+                console.error(`❌ Erro ao processar lead ${i + 1}:`, error.message);
+            }
+        }
+        
+        // Resultados finais
+        if (leadsProcessados === 0) {
+            console.log('🏁 Nenhum lead encontrado');
             return false;
         }
         
-        // Envia mensagem para o lead encontrado
-        const sucesso = await enviarMensagemAutomaticaLead(lead);
+        console.log(`\n📊 RESULTADO DO LOTE:`);
+        console.log(`   • Leads processados: ${leadsProcessados}`);
+        console.log(`   • Envios bem-sucedidos: ${sucessos}`);
+        console.log(`   • Taxa de sucesso: ${leadsProcessados > 0 ? Math.round((sucessos / leadsProcessados) * 100) : 0}%`);
         
-        console.log(sucesso ? '✅ Processo concluído com sucesso!' : '⚠️ Processo concluído com falhas');
-        return sucesso;
+        // Considera sucesso se pelo menos 1 envio foi bem-sucedido
+        const resultadoFinal = sucessos > 0;
+        console.log(resultadoFinal ? '✅ Lote concluído com sucesso!' : '⚠️ Lote concluído com falhas');
+        
+        return resultadoFinal;
         
     } catch (error) {
         console.error('❌ Erro no processo automático:', error.message);
@@ -539,6 +613,11 @@ app.get('/status', (req, res) => {
     res.json({
         status: 'ativo',
         mensagem: 'Sistema automático de leads rodando',
+        configuracao: {
+            leadsParalelos: 3,
+            pausaEntreLeads: '3 segundos',
+            pausaEntreLotes: '10 minutos'
+        },
         horario: {
             atual: horarioAtual,
             comercial: '7h às 23h',
@@ -546,18 +625,49 @@ app.get('/status', (req, res) => {
             proximoEnvio: dentroHorario ? 'Em funcionamento' : proximoEnvio
         },
         intervalo: {
-            sucesso: '5 minutos',
-            falha: '2 minutos',
+            sucesso: '10 minutos',
+            falha: '2 segundos',
             foraHorario: 'Até próximo horário comercial'
         },
         backend: BACKEND_URL
     });
 });
 
-// 🚀 Inicializar o cliente do WhatsApp
-console.log('🤖 Iniciando bot WhatsApp...');
+// ===================================================================================
+// 🚀 INICIALIZAÇÃO COM RETRY AUTOMÁTICO
+// ===================================================================================
 
-client.initialize().catch(error => {
-    console.error('❌ Erro ao inicializar cliente:', error);
-    process.exit(1);
-});
+let tentativasInicializacao = 0;
+const MAX_TENTATIVAS = 3;
+
+const inicializarClienteComRetry = async () => {
+    tentativasInicializacao++;
+    
+    try {
+        console.log(`🤖 Iniciando bot WhatsApp... (Tentativa ${tentativasInicializacao}/${MAX_TENTATIVAS})`);
+        await client.initialize();
+        
+    } catch (error) {
+        console.error(`❌ Erro ao inicializar cliente (Tentativa ${tentativasInicializacao}):`, error.message);
+        
+        if (tentativasInicializacao < MAX_TENTATIVAS) {
+            console.log(`🔄 Tentando novamente em 10 segundos...`);
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            
+            // Limpa recursos antes de tentar novamente
+            try {
+                await client.destroy();
+            } catch (destroyError) {
+                console.log('⚠️ Erro ao limpar cliente anterior:', destroyError.message);
+            }
+            
+            return inicializarClienteComRetry();
+        } else {
+            console.error(`💀 Falha após ${MAX_TENTATIVAS} tentativas. Encerrando...`);
+            process.exit(1);
+        }
+    }
+};
+
+// Inicializar o cliente
+inicializarClienteComRetry();
