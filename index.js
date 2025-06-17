@@ -113,11 +113,29 @@ client.on('message', async (message) => {
 
 // Função para padronizar números de telefone
 const padronizarNumero = (numero) => {
-    // Remove todos os caracteres não numéricos
-    const numeroLimpo = numero.toString().replace(/\D/g, '');
+    // Validação de entrada
+    if (!numero) {
+        console.error('❌ Número não fornecido para padronização');
+        return null;
+    }
+    
+    // Converte para string e remove todos os caracteres não numéricos
+    const numeroLimpo = String(numero).replace(/\D/g, '');
+    
+    // Verifica se ainda tem números após limpeza
+    if (!numeroLimpo) {
+        console.error('❌ Número não contém dígitos válidos:', numero);
+        return null;
+    }
     
     // Garante que tenha o código do país (55)
     let numeroCompleto = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`;
+    
+    // Validação do tamanho mínimo (55 + DDD + pelo menos 8 dígitos = 12)
+    if (numeroCompleto.length < 12) {
+        console.error('❌ Número muito curto após padronização:', numeroCompleto);
+        return null;
+    }
     
     // Lógica especial para detectar e remover o 9º dígito extra
     if (numeroCompleto.length === 13) {
@@ -133,7 +151,8 @@ const padronizarNumero = (numero) => {
         }
     }
     
-    return numeroCompleto;
+    // Garante que retorna sempre uma string
+    return String(numeroCompleto);
 };
 
 // ===================================================================================
@@ -485,6 +504,12 @@ app.post('/enviar-mensagem', async (req, res) => {
         console.log('🔧 Número original:', numero);
         console.log('✅ Número padronizado:', numeroPadronizado);
         
+        // Verifica se a padronização foi bem-sucedida
+        if (!numeroPadronizado) {
+            console.log('❌ Falha na padronização do número');
+            return res.status(400).json({ status: 'erro', mensagem: 'Número de telefone inválido.' });
+        }
+        
         // Formatar o número para o padrão do WhatsApp: DDI + DDD + NUMERO + @c.us
         // Exemplo: 5531999998888@c.us
         const numeroFormatado = `${numeroPadronizado}@c.us`;
@@ -493,15 +518,32 @@ app.post('/enviar-mensagem', async (req, res) => {
         // Monta a mensagem personalizada de agradecimento
         const mensagem = `Olá, ${nomeCliente}! 👋 Muito obrigado pelo seu pedido de melhoria de cardápio na Cardaplus!\n\nRecebemos a sua loja: *${nomeLoja}*.\n\nJá estamos preparando tudo por aqui com muito carinho. Em breve você receberá novas atualizações. 🚀`;
 
+        // Validação extra: verifica se o número está no formato correto
+        if (!numeroFormatado.match(/^55\d{10,11}@c\.us$/)) {
+            console.log('❌ Formato do número WhatsApp inválido:', numeroFormatado);
+            return res.status(400).json({ status: 'erro', mensagem: 'Formato do número de telefone inválido.' });
+        }
+
+        // Verifica se o WhatsApp está conectado
+        const state = await client.getState();
+        if (state !== 'CONNECTED') {
+            console.log('❌ WhatsApp não está conectado. Estado:', state);
+            return res.status(503).json({ status: 'erro', mensagem: 'Bot WhatsApp não está conectado.' });
+        }
+
         // Envia a mensagem!
         await client.sendMessage(numeroFormatado, mensagem);
-        await client.sendMessage(553189551995, `${nomeCliente} acabou de solicitar uma melhoria de cardápio na Cardaplus!`);
+        
+        // Envia notificação para o número fixo (com validação)
+        const numeroNotificacao = '553189551995@c.us';
+        await client.sendMessage(numeroNotificacao, `${nomeCliente} acabou de solicitar uma melhoria de cardápio na Cardaplus!`);
         
         console.log(`✅ Mensagem enviada com sucesso para ${nomeCliente} (${numero})`);
         res.status(200).json({ status: 'sucesso', mensagem: 'Mensagem enviada com sucesso!' });
 
     } catch (error) {
         console.error('❌ Erro ao enviar mensagem:', error);
+        console.error('❌ Stack trace:', error.stack);
         res.status(500).json({ status: 'erro', mensagem: 'Falha ao enviar a mensagem via WhatsApp.' });
     }
 });
@@ -521,9 +563,10 @@ app.post('/cupomshop/logs', async (req, res) => {
 
     try {
         // Envia a mensagem!
-        await client.sendMessage(553189551995, `${mensagem}`);
+        const numeroNotificacao = '553189551995@c.us';
+        await client.sendMessage(numeroNotificacao, `${mensagem}`);
         
-        console.log(`✅ Mensagem enviada com sucesso para (${numero})`);
+        console.log(`✅ Mensagem enviada com sucesso`);
         res.status(200).json({ status: 'sucesso', mensagem: 'Mensagem enviada com sucesso!' });
 
     } catch (error) {
