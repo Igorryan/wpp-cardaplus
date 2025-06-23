@@ -296,6 +296,18 @@ const montarNumeroComDDD = (ddd, phone) => {
     return null;
 };
 
+// Função para verificar se um número possui WhatsApp
+const verificarSeTemWhatsApp = async (numeroPadronizado) => {
+    try {
+        const numeroFormatado = `${numeroPadronizado}@c.us`;
+        const isRegistered = await client.isRegisteredUser(numeroFormatado);
+        return isRegistered;
+    } catch (error) {
+        console.error(`❌ Erro ao verificar se ${numeroPadronizado} tem WhatsApp:`, error.message);
+        return false; // Em caso de erro, assume que não tem WhatsApp para evitar spam
+    }
+};
+
 // Função para enviar mensagem automática para um lead
 const enviarMensagemAutomaticaLead = async (lead) => {
     try {
@@ -347,53 +359,83 @@ const enviarMensagemAutomaticaLead = async (lead) => {
             }
         }
 
-        console.log(`📱 ${numerosUnicos.length} número(s) para envio ${numerosParaEnviar.length !== numerosUnicos.length ? `(${numerosParaEnviar.length - numerosUnicos.length} duplicata(s) removida(s))` : ''}`);
+        console.log(`📱 ${numerosUnicos.length} número(s) para validação ${numerosParaEnviar.length !== numerosUnicos.length ? `(${numerosParaEnviar.length - numerosUnicos.length} duplicata(s) removida(s))` : ''}`);
         
+        // Verifica quais números possuem WhatsApp
+        const numerosComWhatsApp = [];
+        let numerosVerificados = 0;
+        
+        for (const item of numerosUnicos) {
+            numerosVerificados++;
+            console.log(`🔍 Verificando ${numerosVerificados}/${numerosUnicos.length}: ${item.numeroPadronizado} (${item.tipo})`);
+            
+            const temWhatsApp = await verificarSeTemWhatsApp(item.numeroPadronizado);
+            
+            if (temWhatsApp) {
+                numerosComWhatsApp.push(item);
+                console.log(`✅ WhatsApp confirmado: ${item.numeroPadronizado}`);
+            } else {
+                console.log(`❌ Sem WhatsApp: ${item.numeroPadronizado}`);
+            }
+            
+            // Pequena pausa entre verificações para não sobrecarregar
+            if (numerosVerificados < numerosUnicos.length) {
+                await new Promise(resolve => setTimeout(resolve, 1000)); // 1 segundo
+            }
+        }
+        
+        console.log(`📊 Números com WhatsApp: ${numerosComWhatsApp.length}/${numerosUnicos.length}`);
+        
+        if (numerosComWhatsApp.length === 0) {
+            console.log('⚠️  Nenhum número possui WhatsApp');
+            return false;
+        }
 
         // Monta a mensagem personalizada
-        const mensagem = `Enquanto o presidente te rouba e o iFood te enche de taxas, você segue trabalhando duro, jogando dentro das regras.
+        const mensagem = `*🚨 Nova Oportunidade para Restaurantes do iFood*
 
-*Que tal um atalho inteligente?*
-Nossa equipe envia pedidos com cupom direto pra sua loja e avalia cada pedido.
-Você só precisa aceitar.
+Você já imaginou aumentar suas avaliações 5 estrelas e ainda ganhar uma renda extra com cada pedido aceito?
 
-Resultado?
-⭐️ Avaliações 5 estrelas no seu restaurante.
-💰 Dinheiro no seu bolso (e no nosso também).
-✅ E tudo isso com segurança e transparência.
+📦 Nós temos uma solução discreta e eficiente:
+Enviamos pedidos com cupom direto para o seu restaurante.
+Você só precisa aceitar normalmente — como qualquer pedido.
 
-Estamos há mais de 5 anos no mercado, com um processo sólido, testado e aprovado.
-Quer entender melhor? É só chamar ou ligar. Estamos à disposição!`;
+💡 O resultado?
+⭐ Avaliações positivas que impulsionam seu ranking
+💸 Ganhos diretos a cada pedido aceito
+🔒 Processo 100% seguro, validado e transparente
+
+📈 Já ajudamos mais de 200 restaurantes a crescerem com esse sistema nos últimos 5 anos.
+
+Quer saber como funciona na prática? Me chama aqui que te explico rapidinho. Sem compromisso.`;
 
         let enviosRealizados = 0; 
         let enviosBemSucedidos = 0;
 
-        // Envia mensagem para todos os números únicos encontrados
-        for (const item of numerosUnicos) {
+        // Envia mensagem para todos os números que possuem WhatsApp
+        for (const item of numerosComWhatsApp) {
             try {
                 enviosRealizados++;
                 
-                // Usar o número já padronizado da verificação de duplicatas
-                const numeroPadronizado = item.numeroPadronizado;
-                const numeroFormatado = `${numeroPadronizado}@c.us`;
+                const numeroFormatado = `${item.numeroPadronizado}@c.us`;
 
                 // Envia a mensagem!
                 await client.sendMessage(numeroFormatado, mensagem);
                 enviosBemSucedidos++;
                 
-                console.log(`✅ Enviado para ${numeroPadronizado} (${item.tipo})`);
+                console.log(`✅ Enviado para ${item.numeroPadronizado} (${item.tipo})`);
                 
                 // Pequena pausa entre envios para evitar spam
-                if (enviosRealizados < numerosUnicos.length) {
+                if (enviosRealizados < numerosComWhatsApp.length) {
                     await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos
                 }
                 
             } catch (error) {
-                console.error(`❌ Erro ao enviar para ${item.numero}:`, error.message);
+                console.error(`❌ Erro ao enviar para ${item.numeroPadronizado}:`, error.message);
             }
         }
         
-        console.log(`📊 Resultado: ${enviosBemSucedidos}/${numerosUnicos.length} envios bem-sucedidos`);
+        console.log(`📊 Resultado: ${enviosBemSucedidos}/${numerosComWhatsApp.length} envios bem-sucedidos`);
         
         // Considera sucesso se pelo menos 1 envio foi bem-sucedido
         return enviosBemSucedidos > 0;
@@ -433,39 +475,54 @@ const processarEnvioAutomaticoLead = async () => {
         
         console.log('✅ No horário comercial - Buscando leads...');
         
-        const LIMITE_LEADS = 3; // Processará até 3 leads por vez
-        let leadsProcessados = 0;
-        let sucessos = 0;
+        const META_ENVIOS = 3; // Meta de mensagens enviadas com sucesso
+        const MAX_TENTATIVAS = 10; // Máximo de leads para tentar processar
         
-        // Processa até 3 leads
-        for (let i = 0; i < LIMITE_LEADS; i++) {
+        let leadsProcessados = 0;
+        let enviosBemSucedidos = 0;
+        let tentativas = 0;
+        
+        // Continua processando até conseguir 3 envios bem-sucedidos ou esgotar as tentativas
+        while (enviosBemSucedidos < META_ENVIOS && tentativas < MAX_TENTATIVAS) {
             try {
+                tentativas++;
+                
                 // Busca um lead sem mensagem
                 const lead = await buscarLeadSemMensagem();
                 
                 if (!lead) {
-                    console.log(`🏁 Nenhum lead pendente (processados: ${leadsProcessados})`);
+                    console.log(`🏁 Nenhum lead pendente (tentativa ${tentativas}/${MAX_TENTATIVAS})`);
                     break;
                 }
                 
                 leadsProcessados++;
-                console.log(`\n📋 Processando lead ${leadsProcessados}/${LIMITE_LEADS}`);
+                console.log(`\n📋 Processando lead ${leadsProcessados} (Tentativa ${tentativas}/${MAX_TENTATIVAS})`);
+                console.log(`🎯 Meta: ${enviosBemSucedidos}/${META_ENVIOS} envios bem-sucedidos`);
                 
                 // Envia mensagem para o lead encontrado
                 const sucesso = await enviarMensagemAutomaticaLead(lead);
                 
                 if (sucesso) {
-                    sucessos++;
+                    enviosBemSucedidos++;
+                    console.log(`✅ Envio bem-sucedido! Progresso: ${enviosBemSucedidos}/${META_ENVIOS}`);
+                    
+                    // Se atingiu a meta, pode parar
+                    if (enviosBemSucedidos >= META_ENVIOS) {
+                        console.log(`🎉 Meta atingida! ${META_ENVIOS} mensagens enviadas com sucesso!`);
+                        break;
+                    }
+                } else {
+                    console.log(`⚠️ Envio falhou. Continuando... (${enviosBemSucedidos}/${META_ENVIOS})`);
                 }
                 
                 // Pausa de 3 segundos entre leads para evitar spam
-                if (i < LIMITE_LEADS - 1) {
+                if (enviosBemSucedidos < META_ENVIOS && tentativas < MAX_TENTATIVAS) {
                     console.log('⏳ Aguardando 3 segundos antes do próximo lead...');
                     await new Promise(resolve => setTimeout(resolve, 3000));
                 }
                 
             } catch (error) {
-                console.error(`❌ Erro ao processar lead ${i + 1}:`, error.message);
+                console.error(`❌ Erro ao processar tentativa ${tentativas}:`, error.message);
             }
         }
         
@@ -475,16 +532,22 @@ const processarEnvioAutomaticoLead = async () => {
             return false;
         }
         
-        console.log(`\n📊 RESULTADO DO LOTE:`);
+        console.log(`\n📊 RESULTADO DO CICLO:`);
         console.log(`   • Leads processados: ${leadsProcessados}`);
-        console.log(`   • Envios bem-sucedidos: ${sucessos}`);
-        console.log(`   • Taxa de sucesso: ${leadsProcessados > 0 ? Math.round((sucessos / leadsProcessados) * 100) : 0}%`);
+        console.log(`   • Tentativas realizadas: ${tentativas}`);
+        console.log(`   • Envios bem-sucedidos: ${enviosBemSucedidos}/${META_ENVIOS}`);
+        console.log(`   • Taxa de sucesso: ${leadsProcessados > 0 ? Math.round((enviosBemSucedidos / leadsProcessados) * 100) : 0}%`);
         
-        // Considera sucesso se pelo menos 1 envio foi bem-sucedido
-        const resultadoFinal = sucessos > 0;
-        console.log(resultadoFinal ? '✅ Lote concluído com sucesso!' : '⚠️ Lote concluído com falhas');
+        // Determina o resultado baseado na meta atingida
+        const metaAtingida = enviosBemSucedidos >= META_ENVIOS;
         
-        return resultadoFinal;
+        if (metaAtingida) {
+            console.log(`🎯 META ATINGIDA! ${enviosBemSucedidos} mensagens enviadas com sucesso!`);
+            return true; // Retorna true para aguardar o intervalo completo
+        } else {
+            console.log(`⚠️ Meta não atingida. Apenas ${enviosBemSucedidos}/${META_ENVIOS} envios bem-sucedidos`);
+            return false; // Retorna false para tentar novamente mais rápido
+        }
         
     } catch (error) {
         console.error('❌ Erro no processo automático:', error.message);
@@ -570,12 +633,29 @@ app.post('/enviar-mensagem', async (req, res) => {
         const numeroFormatado = `${numeroPadronizado}@c.us`;
         console.log('📱 Número formatado para WhatsApp:', numeroFormatado);
 
+        // Verifica se o número possui WhatsApp antes de enviar
+        console.log('🔍 Verificando se o número possui WhatsApp...');
+        const temWhatsApp = await verificarSeTemWhatsApp(numeroPadronizado);
+        
+        if (!temWhatsApp) {
+            console.log(`❌ Número ${numeroPadronizado} não possui WhatsApp`);
+            return res.status(400).json({ 
+                status: 'erro', 
+                mensagem: 'O número informado não possui WhatsApp ativo.' 
+            });
+        }
+        
+        console.log(`✅ WhatsApp confirmado para ${numeroPadronizado}`);
+
         // Monta a mensagem personalizada de agradecimento
         const mensagem = `Olá, ${nomeCliente}! 👋 Muito obrigado pelo seu pedido de melhoria de cardápio na Cardaplus!\n\nRecebemos a sua loja: *${nomeLoja}*.\n\nJá estamos preparando tudo por aqui com muito carinho. Em breve você receberá novas atualizações. 🚀`;
 
         // Envia a mensagem!
         await client.sendMessage(numeroFormatado, mensagem);
-        await client.sendMessage(553189551995, `${nomeCliente} acabou de solicitar uma melhoria de cardápio na Cardaplus!`);
+        
+        // Envia notificação para o número fixo (com validação)
+        const numeroNotificacao = '553189551995@c.us';
+        await client.sendMessage(numeroNotificacao, `${nomeCliente} acabou de solicitar uma melhoria de cardápio na Cardaplus!`);
         
         console.log(`✅ Mensagem enviada com sucesso para ${nomeCliente} (${numero})`);
         res.status(200).json({ status: 'sucesso', mensagem: 'Mensagem enviada com sucesso!' });
@@ -614,9 +694,11 @@ app.get('/status', (req, res) => {
         status: 'ativo',
         mensagem: 'Sistema automático de leads rodando',
         configuracao: {
-            leadsParalelos: 3,
+            metaEnvios: 3,
+            maxTentativas: 10,
             pausaEntreLeads: '3 segundos',
-            pausaEntreLotes: '10 minutos'
+            pausaAposMetaAtingida: '10 minutos',
+            pausaSeMetaNaoAtingida: '2 segundos'
         },
         horario: {
             atual: horarioAtual,
