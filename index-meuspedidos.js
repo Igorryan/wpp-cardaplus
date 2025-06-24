@@ -141,6 +141,33 @@ client.on('message', async (message) => {
     // await message.reply(respostaAutomatica);
 });
 
+app.post('/cupomshop/logs', async (req, res) => {
+    // Pegamos os dados que o seu site enviou: o número e o nome do cliente.
+    const { mensagem } = req.body;
+
+    console.log('\n📨 NOVA REQUISIÇÃO: POST /cupomshop/logs');
+    console.log('🏪 Mensagem:', mensagem);
+
+    // Validação básica
+    if (!mensagem) {
+        console.log('❌ Dados incompletos recebidos');
+        return res.status(400).json({ status: 'erro', mensagem: 'Dados incompletos. É necessário fornecer mensagem.' });
+    }
+
+    try {
+        // Envia a mensagem!
+        const numeroNotificacao = '553189551995@c.us';
+        await client.sendMessage(numeroNotificacao, `${mensagem}`);
+        
+        console.log(`✅ Mensagem enviada com sucesso`);
+        res.status(200).json({ status: 'sucesso', mensagem: 'Mensagem enviada com sucesso!' });
+
+    } catch (error) {
+        console.error('❌ Erro ao enviar mensagem:', error);
+        res.status(500).json({ status: 'erro', mensagem: 'Falha ao enviar a mensagem via WhatsApp.' });
+    }
+});
+
 // ===================================================================================
 // 🔧 FUNÇÕES AUXILIARES
 // ===================================================================================
