@@ -172,6 +172,11 @@ app.post('/cupomshop/logs', async (req, res) => {
 // 🔧 FUNÇÕES AUXILIARES
 // ===================================================================================
 
+// Controle de falhas na verificação de WhatsApp
+let verificacaoWhatsAppHabilitada = true;
+let contadorErrosVerificacao = 0;
+const MAX_ERROS_VERIFICACAO = 10;
+
 // Função para padronizar números de telefone
 const padronizarNumero = (numero) => {
     // Remove todos os caracteres não numéricos
@@ -323,15 +328,77 @@ const montarNumeroComDDD = (ddd, phone) => {
     return null;
 };
 
-// Função para verificar se um número possui WhatsApp
-const verificarSeTemWhatsApp = async (numeroPadronizado) => {
+// Função para verificar se um número possui WhatsApp com timeout e fallback
+const verificarSeTemWhatsApp = async (numeroPadronizado, timeoutMs = 5000) => {
+    // Se a verificação foi desabilitada devido a muitos erros, assume que tem WhatsApp
+    if (!verificacaoWhatsAppHabilitada) {
+        console.log(`⚠️ Verificação WhatsApp desabilitada temporariamente. Assumindo que ${numeroPadronizado} tem WhatsApp`);
+        return true;
+    }
+
     try {
+        // Verifica se o cliente está realmente conectado e pronto
+        const state = await client.getState();
+        if (state !== 'CONNECTED') {
+            console.log(`⚠️ Cliente não conectado (${state}). Assumindo que ${numeroPadronizado} tem WhatsApp`);
+            return true; // Se não conseguir verificar, assume que tem para tentar enviar
+        }
+
         const numeroFormatado = `${numeroPadronizado}@c.us`;
-        const isRegistered = await client.isRegisteredUser(numeroFormatado);
+        
+        // Adiciona timeout para a verificação
+        const verificacaoPromise = client.isRegisteredUser(numeroFormatado);
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout na verificação')), timeoutMs)
+        );
+        
+        const isRegistered = await Promise.race([verificacaoPromise, timeoutPromise]);
+        
+        // Se chegou até aqui, a verificação funcionou - reseta o contador de erros
+        if (contadorErrosVerificacao > 0) {
+            contadorErrosVerificacao = 0;
+            console.log(`✅ Verificação WhatsApp funcionando novamente`);
+        }
+        
         return isRegistered;
+        
     } catch (error) {
-        console.error(`❌ Erro ao verificar se ${numeroPadronizado} tem WhatsApp:`, error.message);
-        return false; // Em caso de erro, assume que não tem WhatsApp para evitar spam
+        contadorErrosVerificacao++;
+        console.error(`❌ Erro ao verificar se ${numeroPadronizado} tem WhatsApp (${contadorErrosVerificacao}/${MAX_ERROS_VERIFICACAO}):`, error.message);
+        
+        // Se atingiu o máximo de erros, desabilita a verificação temporariamente
+        if (contadorErrosVerificacao >= MAX_ERROS_VERIFICACAO) {
+            verificacaoWhatsAppHabilitada = false;
+            console.log(`🚫 Muitos erros na verificação WhatsApp. Desabilitando por 30 minutos...`);
+            
+            // Reabilita após 30 minutos
+            setTimeout(() => {
+                verificacaoWhatsAppHabilitada = true;
+                contadorErrosVerificacao = 0;
+                console.log(`✅ Verificação WhatsApp reabilitada`);
+            }, 30 * 60 * 1000); // 30 minutos
+        }
+        
+        // Lista de erros que indicam problemas com WhatsApp Web (não com o número)
+        const errosWhatsAppWeb = [
+            'WidFactory',
+            'Evaluation failed',
+            'Timeout na verificação',
+            'Protocol error',
+            'Target closed',
+            'Session closed'
+        ];
+        
+        const isErroWhatsAppWeb = errosWhatsAppWeb.some(erro => 
+            error.message.includes(erro)
+        );
+        
+        if (isErroWhatsAppWeb) {
+            console.log(`⚠️ Erro do WhatsApp Web detectado. Assumindo que ${numeroPadronizado} tem WhatsApp`);
+            return true; // Tenta enviar mesmo assim
+        }
+        
+        return false; // Para outros erros, assume que não tem WhatsApp
     }
 };
 
@@ -726,6 +793,12 @@ app.get('/status', (req, res) => {
             pausaEntreLeads: '3 segundos',
             pausaAposMetaAtingida: '10 minutos',
             pausaSeMetaNaoAtingida: '2 segundos'
+        },
+        verificacaoWhatsApp: {
+            habilitada: verificacaoWhatsAppHabilitada,
+            errosConsecutivos: contadorErrosVerificacao,
+            maxErros: MAX_ERROS_VERIFICACAO,
+            timeout: '5 segundos'
         },
         horario: {
             atual: horarioAtual,
