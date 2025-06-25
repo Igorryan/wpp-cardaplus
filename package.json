@@ -4,8 +4,8 @@
   "description": "Bot do WhatsApp integrado com Google Gemini AI para respostas inteligentes",
   "main": "index.js",
   "scripts": {
-    "start": "node index-cardaplus.js",
-    "dev": "nodemon index-cardaplus.js",
+    "start": "node index.js",
+    "dev": "nodemon index.js",
     "test-api": "node teste-api.js"
   },
   "keywords": [

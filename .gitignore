@@ -1,5 +1,6 @@
 # Dependências
 node_modules/
+auth_session/
 
 # Arquivo de sessão do whatsapp-web.js
 .wwebjs_auth/
