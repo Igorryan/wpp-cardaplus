@@ -513,6 +513,35 @@ const iniciarEnvioAutomaticoLeads = () => {
     }, 5000);
 };
 
+app.post('/notification', async (req, res) => {
+    // Pegamos os dados que o seu site enviou: o número e o nome do cliente.
+    const { mensagem, phone } = req.body;
+
+    console.log('\n📨 NOVA REQUISIÇÃO: POST /notification');
+    console.log('🏪 Mensagem:', mensagem);
+
+    // Validação básica
+    if (!mensagem) {
+        console.log('❌ Dados incompletos recebidos');
+        return res.status(400).json({ status: 'erro', mensagem: 'Dados incompletos. É necessário fornecer mensagem.' });
+    }
+
+    try {
+        // Envia a mensagem!
+        const newPhone = padronizarNumero(phone);
+
+        const numeroNotificacao = `${newPhone}@c.us`;
+        await client.sendMessage(numeroNotificacao, `${mensagem}`);
+        
+        console.log(`✅ Mensagem enviada com sucesso`);
+        res.status(200).json({ status: 'sucesso', mensagem: 'Mensagem enviada com sucesso!' });
+
+    } catch (error) {
+        console.error('❌ Erro ao enviar mensagem:', error);
+        res.status(500).json({ status: 'erro', mensagem: 'Falha ao enviar a mensagem via WhatsApp.' });
+    }
+});
+
 // 🚀 Inicializar o cliente do WhatsApp
 console.log('🤖 Iniciando bot WhatsApp Cardaplus...');
 
