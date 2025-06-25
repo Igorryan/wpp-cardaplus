@@ -15,10 +15,7 @@ require('dotenv').config();
 // ===================================================================================
 
 const app = express();
-const PORTA_API = 3000;
-const BACKEND_URL = 'https://api.cardaplus.com'; // URL do backend em produção
-
-console.log(PORTA_API);
+const PORTA_API = 3006;
 
 // Middleware para o Express entender JSON
 app.use(express.json());
