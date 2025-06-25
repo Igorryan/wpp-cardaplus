@@ -55,7 +55,13 @@ const client = new Client({
     }
 });
 
-// Cliente configurado com estabilidade otimizada
+// ===================================================================================
+// 🎛️ CONTROLE DO SISTEMA AUTOMÁTICO
+// ===================================================================================
+
+// Variável para controlar se o sistema automático está ativo
+let sistemaAutomaticoAtivo = true;
+
 // ===================================================================================
 // 📱 INICIALIZAÇÃO E EVENTOS DO WHATSAPP
 // ===================================================================================
@@ -97,6 +103,35 @@ client.on('error', (error) => {
 // Resposta automática para quem tentar conversar com o bot
 client.on('message', async (message) => {
     if (message.from.endsWith('@g.us') || message.fromMe) return;
+    
+    // Verifica se é um comando de controle do sistema
+    const comando = message.body.toLowerCase().trim();
+    
+    if (comando === 'stop') {
+        sistemaAutomaticoAtivo = false;
+        console.log('\n🛑 SISTEMA AUTOMÁTICO PAUSADO pelo comando "stop"');
+        await message.reply('🛑 *Sistema automático pausado!*\n\nO envio de mensagens para leads foi interrompido.\nPara retomar, envie: *start*');
+        return;
+    }
+    
+    if (comando === 'start') {
+        if (sistemaAutomaticoAtivo) {
+            await message.reply('✅ *Sistema já está ativo!*\n\nO envio automático para leads já está funcionando normalmente.');
+        } else {
+            sistemaAutomaticoAtivo = true;
+            console.log('\n✅ SISTEMA AUTOMÁTICO RETOMADO pelo comando "start"');
+            await message.reply('✅ *Sistema automático retomado!*\n\nO envio de mensagens para leads foi reiniciado.\nPara pausar, envie: *stop*');
+            
+            // Reinicia o processo automático imediatamente
+            setTimeout(async () => {
+                if (sistemaAutomaticoAtivo) {
+                    const resultado = await processarEnvioAutomaticoLead();
+                    agendarProximoEnvio(resultado);
+                }
+            }, 2000);
+        }
+        return;
+    }
     
     // const respostaAutomatica = "Olá! 👋 Este é um canal exclusivo para o envio de notificações da Cardaplus. No momento, não consigo processar respostas por aqui. Se precisar de ajuda, por favor, acesse nosso site: https://cardaplus.com";
     // await message.reply(respostaAutomatica);
@@ -427,6 +462,12 @@ Veja esse antes e depois (video abaixo) e descubra como a *Cardaplus* pode *muda
 // Função principal que executa o processo automático
 const processarEnvioAutomaticoLead = async () => {
     try {
+        // Verifica se o sistema automático está ativo
+        if (!sistemaAutomaticoAtivo) {
+            console.log('⏸️  Sistema automático pausado');
+            return 'pausado';
+        }
+        
         // Verifica se está no horário comercial
         if (!estaNoHorarioComercial()) {
             const proximoHorario = calcularProximoHorarioComercial();
@@ -475,6 +516,18 @@ const agendarProximoEnvio = (resultado) => {
         clearTimeout(proximoEnvioTimeout);
     }
     
+    // Verifica se o sistema automático está ativo
+    if (!sistemaAutomaticoAtivo) {
+        console.log('⏸️  Sistema automático pausado - não agendando próximo envio');
+        return;
+    }
+    
+    // Se o resultado é 'pausado', não agenda nada
+    if (resultado === 'pausado') {
+        console.log('⏸️  Sistema foi pausado durante execução');
+        return;
+    }
+    
     let intervalo;
     let mensagemIntervalo;
     
@@ -497,8 +550,13 @@ const agendarProximoEnvio = (resultado) => {
     console.log(`⏰ Próximo envio em: ${mensagemIntervalo}`);
     
     proximoEnvioTimeout = setTimeout(async () => {
-        const novoResultado = await processarEnvioAutomaticoLead();
-        agendarProximoEnvio(novoResultado);
+        // Verifica novamente se ainda está ativo antes de executar
+        if (sistemaAutomaticoAtivo) {
+            const novoResultado = await processarEnvioAutomaticoLead();
+            agendarProximoEnvio(novoResultado);
+        } else {
+            console.log('⏸️  Sistema automático foi pausado - cancelando envio agendado');
+        }
     }, intervalo);
 };
 
