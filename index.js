@@ -15,7 +15,7 @@ require('dotenv').config();
 // ===================================================================================
 
 const app = express();
-const PORTA_API = 3006;
+const PORTA_API = 3336;
 
 // Middleware para o Express entender JSON
 app.use(express.json());
