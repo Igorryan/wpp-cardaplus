@@ -61,7 +61,7 @@ const client = new Client({
 // ===================================================================================
 
 // Variável para controlar se o sistema automático está ativo
-let sistemaAutomaticoAtivo = true;
+let sistemaAutomaticoAtivo = false;
 
 // ===================================================================================
 // 📱 INICIALIZAÇÃO E EVENTOS DO WHATSAPP
