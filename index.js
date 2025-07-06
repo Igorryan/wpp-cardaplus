@@ -579,17 +579,65 @@ app.post('/notification', async (req, res) => {
     }
 
     try {
-        // Envia a mensagem!
-        const newPhone = padronizarNumero(phone);
-
-        const numeroNotificacao = `${newPhone}@c.us`;
-        await client.sendMessage(numeroNotificacao, `${mensagem}`);
+        // Gera ambos os formatos: com 9 e sem 9
+        const numeroCom9 = padronizarNumero(phone, true);
+        const numeroSem9 = padronizarNumero(phone, false);
         
-        console.log(`✅ Mensagem enviada com sucesso`);
-        res.status(200).json({ status: 'sucesso', mensagem: 'Mensagem enviada com sucesso!' });
+        console.log(`📱 Número com 9º dígito: ${numeroCom9}`);
+        console.log(`📱 Número sem 9º dígito: ${numeroSem9}`);
+        
+        let enviosRealizados = 0;
+        let enviosBemSucedidos = 0;
+
+        // Lista de números para tentar (evita duplicatas)
+        const numerosParaEnviar = [];
+        if (numeroCom9 !== numeroSem9) {
+            numerosParaEnviar.push(numeroCom9, numeroSem9);
+        } else {
+            numerosParaEnviar.push(numeroCom9);
+        }
+
+        // Envia para cada número
+        for (const numero of numerosParaEnviar) {
+            try {
+                enviosRealizados++;
+                const numeroFormatado = `${numero}@c.us`;
+                await client.sendMessage(numeroFormatado, `${mensagem}`);
+                enviosBemSucedidos++;
+                
+                console.log(`✅ Mensagem enviada para: ${numero}`);
+                
+                // Pequena pausa entre envios se houver múltiplos números
+                if (enviosRealizados < numerosParaEnviar.length) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+            } catch (error) {
+                console.error(`❌ Erro ao enviar para ${numero}:`, error.message);
+            }
+        }
+        
+        console.log(`📊 Resultado: ${enviosBemSucedidos}/${numerosParaEnviar.length} envios bem-sucedidos`);
+        
+        if (enviosBemSucedidos > 0) {
+            res.status(200).json({ 
+                status: 'sucesso', 
+                mensagem: `Mensagem enviada com sucesso para ${enviosBemSucedidos} número(s)!`,
+                detalhes: {
+                    enviosRealizados,
+                    enviosBemSucedidos,
+                    numerosTestados: numerosParaEnviar.length
+                }
+            });
+        } else {
+            res.status(500).json({ 
+                status: 'erro', 
+                mensagem: 'Falha ao enviar a mensagem para qualquer número.' 
+            });
+        }
 
     } catch (error) {
-        console.error('❌ Erro ao enviar mensagem:', error);
+        console.error('❌ Erro geral ao enviar mensagem:', error);
         res.status(500).json({ status: 'erro', mensagem: 'Falha ao enviar a mensagem via WhatsApp.' });
     }
 });
