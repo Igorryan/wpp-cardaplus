@@ -143,48 +143,41 @@ client.on('message', async (message) => {
 // ===================================================================================
 
 // Função para padronizar números de telefone
-const padronizarNumero = (numero) => {
-    // Validação de entrada
-    if (!numero) {
-        console.error('❌ Número não fornecido para padronização');
-        return null;
-    }
-    
-    // Converte para string e remove todos os caracteres não numéricos
-    const numeroLimpo = String(numero).replace(/\D/g, '');
-    
-    // Verifica se ainda tem números após limpeza
-    if (!numeroLimpo) {
-        console.error('❌ Número não contém dígitos válidos:', numero);
-        return null;
-    }
+const padronizarNumero = (numero, with9 = true) => {
+    // Remove todos os caracteres não numéricos
+    const numeroLimpo = numero.toString().replace(/\D/g, '');
     
     // Garante que tenha o código do país (55)
     let numeroCompleto = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`;
     
-    // Validação do tamanho mínimo (55 + DDD + pelo menos 8 dígitos = 12)
-    if (numeroCompleto.length < 12) {
-        console.error('❌ Número muito curto após padronização:', numeroCompleto);
-        return null;
-    }
-    
-    // Lógica especial para detectar e remover o 9º dígito extra
+    // Lógica para controlar o 9º dígito baseado na variável with9
     if (numeroCompleto.length === 13) {
         // Formato: 55 + DDD (2) + 9 + 8 dígitos = 13 total
         const ddd = numeroCompleto.substring(2, 4);
         const primeiroDigito = numeroCompleto.substring(4, 5);
         const restante = numeroCompleto.substring(5);
         
-        // Se o primeiro dígito após o DDD é 9, pode ser o 9º dígito extra
         if (primeiroDigito === '9') {
-            const numeroSem9 = `55${ddd}${restante}`;
-            return numeroSem9;
+            if (with9) {
+                // Se with9 = true, mantém o 9º dígito
+                return numeroCompleto;
+            } else {
+                // Se with9 = false, remove o 9º dígito
+                const numeroSem9 = `55${ddd}${restante}`;
+                return numeroSem9;
+            }
         }
+    } else if (numeroCompleto.length === 12 && with9) {
+        // Se o número tem 12 dígitos e with9 = true, adiciona o 9º dígito
+        const ddd = numeroCompleto.substring(2, 4);
+        const telefone = numeroCompleto.substring(4);
+        const numeroCom9 = `55${ddd}9${telefone}`;
+        return numeroCom9;
     }
     
-    // Garante que retorna sempre uma string
-    return String(numeroCompleto);
+    return numeroCompleto;
 };
+
 
 // ===================================================================================
 // 🤖 SISTEMA AUTOMÁTICO DE ENVIO PARA LEADS
