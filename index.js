@@ -401,11 +401,14 @@ const enviarMensagemAutomaticaLead = async (lead) => {
         }
 
         // Monta a mensagem personalizada
-        const mensagem = `${lead.name}, seu cardápio pode estar afastando clientes sem você perceber...
+        const mensagem = `Você é o responsável da loja ${lead.name}?
+        
+Vamos melhorar seu cardápio no iFood e deixa-lo profissional?
 
-Veja esse antes e depois (video abaixo) e descubra como a *Cardaplus* pode *mudar o jogo*.
+Veja esse antes e depois e descubra como a *Cardaplus* pode aumentar suas vendas.
         
 🌟 Acesse: https://www.cardaplus.com
+
 *Seu cardápio é a sua vitrine!*`;
 
         let enviosRealizados = 0; 
